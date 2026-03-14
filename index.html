@@ -41,7 +41,7 @@
     min-height: 100vh;
   }
 
-  /* Subtle grid */
+  
   body::before {
     content: '';
     position: fixed;
@@ -138,7 +138,7 @@
   /* ── Dashboard ── */
   #dashScreen { flex: 1; display: flex; flex-direction: column; animation: fadeIn .3s ease; }
 
-  /* Header */
+  
   .dash-header {
     display: flex;
     align-items: center;
@@ -182,7 +182,7 @@
   .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
   .btn-danger:hover { border-color: var(--red); color: var(--red); }
 
-  /* Stats row */
+  
   .stats-row {
     display: flex;
     gap: 1px;
@@ -213,7 +213,7 @@
     color: var(--muted);
   }
 
-  /* Main layout */
+  
   .dash-body {
     display: flex;
     flex: 1;
@@ -221,7 +221,7 @@
     min-height: 0;
   }
 
-  /* Sidebar */
+  
   .sidebar {
     width: 240px;
     min-width: 240px;
@@ -292,7 +292,7 @@
     flex-shrink: 0;
   }
 
-  /* Main panel */
+  
   .main-panel {
     flex: 1;
     display: flex;
@@ -321,7 +321,7 @@
   .panel-title span { color: var(--accent); }
   .panel-actions { display: flex; gap: 8px; }
 
-  /* Filter/search */
+  
   .filter-bar {
     display: flex;
     align-items: center;
@@ -348,7 +348,7 @@
   .search-input::placeholder { color: var(--muted); }
   .filter-label { font-size: 11px; color: var(--muted); font-family: var(--mono); }
 
-  /* Message table */
+  
   .msg-scroll {
     flex: 1;
     overflow-y: auto;
@@ -392,7 +392,7 @@
     font-family: var(--mono);
     font-size: 11px;
     color: var(--muted);
-    white-space: pre;   /* preserve the newline between date and time */
+    white-space: pre;   
     width: 150px;
     line-height: 1.6;
   }
@@ -454,7 +454,7 @@
   }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-  /* Empty / loading states */
+  
   .state-box {
     display: flex;
     flex-direction: column;
@@ -476,7 +476,7 @@
   }
   @keyframes spin { to { transform:rotate(360deg); } }
 
-  /* Export toast */
+  
   #toast {
     position: fixed;
     bottom: 24px;
@@ -495,6 +495,96 @@
     pointer-events: none;
   }
   #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  
+  .btn-del {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted2);
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 3px 7px;
+    cursor: pointer;
+    transition: all .15s;
+    line-height: 1;
+    font-family: var(--mono);
+  }
+  .btn-del:hover { border-color: var(--red); color: var(--red); background: rgba(224,80,96,.08); }
+
+  .btn-del-room {
+    opacity: 0;
+    transition: opacity .15s, color .15s, border-color .15s;
+    margin-left: auto;
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  .room-item:hover .btn-del-room { opacity: 1; }
+
+  td.col-del { width: 36px; text-align: center; padding: 6px 4px; }
+  tbody tr:hover .btn-del { color: var(--muted); border-color: var(--border2); }
+
+  
+  #confirmOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    animation: fadeIn .15s ease;
+  }
+  .confirm-card {
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 28px 28px 22px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 24px 48px rgba(0,0,0,.6);
+  }
+  .confirm-title {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--red);
+  }
+  .confirm-body {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-family: var(--mono);
+  }
+  .confirm-body strong { color: var(--text); }
+  .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-cancel {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--mono);
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-cancel:hover { border-color: var(--border2); color: var(--text); }
+  .btn-confirm-del {
+    background: var(--red);
+    border: none;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--mono);
+    font-weight: 600;
+    padding: 8px 18px;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn-confirm-del:hover { opacity: .85; }
+  .btn-confirm-del:disabled { opacity: .5; cursor: not-allowed; }
 
   .hidden { display: none !important; }
 
@@ -595,6 +685,7 @@
                 <th>Room</th>
                 <th>User</th>
                 <th>Message</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="msgBody"></tbody>
@@ -610,6 +701,18 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- Confirm delete modal -->
+<div id="confirmOverlay" class="hidden">
+  <div class="confirm-card">
+    <div class="confirm-title" id="confirmTitle">Delete?</div>
+    <div class="confirm-body" id="confirmBody"></div>
+    <div class="confirm-actions">
+      <button class="btn-cancel" id="confirmCancel">Cancel</button>
+      <button class="btn-confirm-del" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ═══════════════════════════════════════════════
@@ -665,23 +768,20 @@ async function attemptGate() {
   gatePassEl.classList.remove('invalid');
 
   try {
-    // Pull a sample of real messages to test against
-    const base = DB_URL.replace(/\/+$/, '');
+      const base = DB_URL.replace(/\/+$/, '');
     let res = await fetch(`${base}/rooms.json`, { mode:'cors', headers:{'Accept':'application/json'} });
     if (!res.ok) throw new Error('fetch_fail');
     const rooms = await res.json();
 
     if (!rooms) {
-      // No messages exist yet — cannot verify
-      gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
+          gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
       gateErrorEl.style.display = 'block';
       gateBtnEl.disabled = false;
       gateBtnEl.textContent = 'Access Dashboard →';
       return;
     }
 
-    // Collect up to 5 ciphertexts to test the key against
-    const samples = [];
+      const samples = [];
     outer: for (const room of Object.values(rooms)) {
       if (!room.messages) continue;
       for (const msg of Object.values(room.messages)) {
@@ -698,10 +798,8 @@ async function attemptGate() {
       return;
     }
 
-    // Try the entered key against the samples — each message has two
-    // independently encrypted slots; we try each slot with the provided key.
-    // If even one succeeds the key is correct.
-    let verified = false;
+      // independently encrypted slots; we try each slot with the provided key.
+      let verified = false;
     for (const ct of samples) {
       try { await _try(ct, val); verified = true; break; } catch(_) {}
     }
@@ -716,11 +814,10 @@ async function attemptGate() {
       return;
     }
 
-    // Key verified against live data — proceed
-    _k = val;
+      _k = val;
     gateScreen.classList.add('hidden');
     dashScreen.classList.remove('hidden');
-    initFirebaseAndLoad();
+    _ifl();
 
   } catch(e) {
     gateErrorEl.textContent = e.message === 'fetch_fail'
@@ -753,10 +850,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 ═══════════════════════════════════════════════ */
 const DB_URL = FIREBASE_CONFIG.databaseURL;
 
-async function firebaseGet(path) {
-  // Strip any trailing slash from DB_URL, ensure clean path join
-  const base = DB_URL.replace(/\/+$/, '');
-  const url  = `${base}/${path}.json`;
+async function _fg(p) {
+  const base=DB_URL.replace(/\/+$/,'');const url=`${base}/${p}.json`;
 
   let res;
   try {
@@ -766,8 +861,7 @@ async function firebaseGet(path) {
       headers: { 'Accept': 'application/json' }
     });
   } catch (networkErr) {
-    // Network-level failure (CORS, offline, DNS) — give a specific message
-    throw new Error(
+      throw new Error(
       `Network error reaching Firebase — is the database URL correct? (${networkErr.message})`
     );
   }
@@ -780,35 +874,33 @@ async function firebaseGet(path) {
   return res.json();
 }
 
-function initFirebaseAndLoad() {
-  // Sanity-check the database URL before attempting any fetch
+function _ifl() {
   if (!DB_URL || !DB_URL.startsWith('https://')) {
-    showToast('Invalid Firebase databaseURL in config — check FIREBASE_CONFIG.databaseURL');
+    _st('Invalid Firebase databaseURL in config — check FIREBASE_CONFIG.databaseURL');
     console.error('DB_URL:', DB_URL);
     return;
   }
-  loadAllData();
+  _lad();
 }
 
-async function loadAllData() {
-  showLoadingState();
+async function _lad() {
+  _sls();
   allMessages = [];
 
   try {
-    const roomsData = await firebaseGet('rooms');
+    const roomsData = await _fg('rooms');
 
     if (!roomsData) {
-      updateStats(0, 0, 0, 0);
-      renderSidebar([]);
-      showEmptyState();
+      _us(0,0,0,0);
+      _rs([]);
+      _ses();
       return;
     }
 
     const roomNames = Object.keys(roomsData);
     let rawMessages = [];
 
-    // Collect all messages from all rooms
-    for (const roomName of roomNames) {
+      for (const roomName of roomNames) {
       const msgs = roomsData[roomName].messages;
       if (!msgs) continue;
       for (const [key, val] of Object.entries(msgs)) {
@@ -822,13 +914,11 @@ async function loadAllData() {
       }
     }
 
-    // Sort all messages by timestamp ascending
-    rawMessages.sort((a, b) => a.timestamp - b.timestamp);
+      rawMessages.sort((a, b) => a.timestamp - b.timestamp);
 
-    // Decrypt all messages
-    let decryptedCount = 0;
+      let decryptedCount = 0;
     const total = rawMessages.length;
-    updateDecryptStatus(0, total);
+    _uds(0, total);
 
     allMessages = await Promise.all(rawMessages.map(async (msg, i) => {
       let plaintext = null;
@@ -840,35 +930,29 @@ async function loadAllData() {
         failed    = true;
         plaintext = null;
       }
-      if (i % 10 === 0) updateDecryptStatus(Math.min(i + 10, total), total);
+      if (i % 10 === 0) _uds(Math.min(i + 10, total), total);
       return { ...msg, plaintext, failed };
     }));
 
-    updateDecryptStatus(total, total);
+    _uds(total, total);
 
-    // Build stats
-    const uniqueUsers = new Set(allMessages.map(m => m.user));
-    updateStats(roomNames.length, uniqueUsers.size, total, decryptedCount);
+      const uniqueUsers = new Set(allMessages.map(m => m.user));
+    _us(roomNames.length, uniqueUsers.size, total, decryptedCount);
 
-    renderSidebar(roomNames, allMessages);
-    renderTable();
+    _rs(roomNames, allMessages);
+    _rt();
 
   } catch (e) {
     console.error('Load error:', e);
-    // Show the specific error message so it's obvious what went wrong
-    showToast('Load failed: ' + (e.message || String(e)));
-    showEmptyState();
+      _st('Load failed: ' + (e.message || String(e)));
+    _ses();
   }
 }
 
-/* ═══════════════════════════════════════════════
-   RENDER — SIDEBAR
-═══════════════════════════════════════════════ */
-function renderSidebar(roomNames, messages = []) {
+function _rs(roomNames, messages = []) {
   const roomList = document.getElementById('roomList');
   const userList = document.getElementById('userList');
 
-  // Rooms
   roomList.innerHTML = '';
 
   // "All" option
@@ -879,7 +963,7 @@ function renderSidebar(roomNames, messages = []) {
     <span class="room-name">All Rooms</span>
     <span class="room-count">${messages.length}</span>
   `;
-  allItem.addEventListener('click', () => selectRoom(null, allItem));
+  allItem.addEventListener('click', () => _sel(null,allItem));
   roomList.appendChild(allItem);
 
   for (const name of roomNames) {
@@ -888,14 +972,18 @@ function renderSidebar(roomNames, messages = []) {
     item.className = 'room-item' + (activeRoom === name ? ' active' : '');
     item.innerHTML = `
       <span class="room-icon">🔒</span>
-      <span class="room-name">${escHtml(name)}</span>
+      <span class="room-name">${_eh(name)}</span>
       <span class="room-count">${count}</span>
+      <button class="btn-del btn-del-room" title="Delete room">✕</button>
     `;
-    item.addEventListener('click', () => selectRoom(name, item));
+    item.querySelector('.btn-del-room').addEventListener('click', (e) => {
+      e.stopPropagation();
+      _dr(name);
+    });
+    item.addEventListener('click', () => _sel(name,item));
     roomList.appendChild(item);
   }
 
-  // Users
   userList.innerHTML = '';
   const uniqueUsers = [...new Set(messages.map(m => m.user))].sort();
   if (uniqueUsers.length === 0) {
@@ -905,29 +993,26 @@ function renderSidebar(roomNames, messages = []) {
       const div = document.createElement('div');
       div.className = 'user-item';
       div.innerHTML = `
-        <div class="user-avatar-sm">${escHtml(user[0].toUpperCase())}</div>
-        <span>${escHtml(user)}</span>
+        <div class="user-avatar-sm">${_eh(user[0].toUpperCase())}</div>
+        <span>${_eh(user)}</span>
       `;
       userList.appendChild(div);
     }
   }
 }
 
-function selectRoom(name, itemEl) {
+function _sel(name,itemEl) {
   activeRoom = name;
   document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
   itemEl.classList.add('active');
   const titleEl = document.getElementById('panelTitle');
   titleEl.innerHTML = name
-    ? `Room: <span>#${escHtml(name)}</span>`
+    ? `Room: <span>#${_eh(name)}</span>`
     : 'All Messages';
-  renderTable();
+  _rt();
 }
 
-/* ═══════════════════════════════════════════════
-   RENDER — TABLE
-═══════════════════════════════════════════════ */
-function renderTable() {
+function _rt() {
   const tbody      = document.getElementById('msgBody');
   const table      = document.getElementById('msgTable');
   const emptyState = document.getElementById('emptyState');
@@ -937,12 +1022,10 @@ function renderTable() {
 
   let rows = allMessages;
 
-  // Filter by active room
   if (activeRoom !== null) {
     rows = rows.filter(m => m.room === activeRoom);
   }
 
-  // Filter by search query
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     rows = rows.filter(m =>
@@ -967,48 +1050,120 @@ function renderTable() {
   for (const msg of rows) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="col-time">${formatDateTime(msg.timestamp)}</td>
-      <td class="col-room">#${escHtml(msg.room)}</td>
+      <td class="col-time">${_fdt(msg.timestamp)}</td>
+      <td class="col-room">#${_eh(msg.room)}</td>
       <td class="col-user">
         <div class="user-pill">
-          <div class="dot-avatar">${escHtml(msg.user[0].toUpperCase())}</div>
-          ${escHtml(msg.user)}
+          <div class="dot-avatar">${_eh(msg.user[0].toUpperCase())}</div>
+          ${_eh(msg.user)}
         </div>
       </td>
       <td class="col-msg">
         ${msg.failed
           ? `<span class="enc-chip">&#x2713; Encrypted</span>`
-          : `<span class="msg-text">${escHtml(msg.plaintext)}</span>`}
+          : `<span class="msg-text">${_eh(msg.plaintext)}</span>`}
       </td>
+      <td class="col-del"><button class="btn-del" title="Delete message">✕</button></td>
     `;
+    tr.querySelector('.btn-del').addEventListener('click', () => _dm(msg));
     frag.appendChild(tr);
   }
   tbody.appendChild(frag);
 }
 
-/* ═══════════════════════════════════════════════
-   SEARCH
-═══════════════════════════════════════════════ */
-document.getElementById('searchInput').addEventListener('input', (e) => {
-  searchQuery = e.target.value.trim();
-  renderTable();
+async function _fd(path){const b=DB_URL.replace(/\/+$/,''),u=`${b}/${path}.json`;let r;try{r=await fetch(u,{method:'DELETE',mode:'cors',headers:{'Accept':'application/json'}});}catch(e){throw new Error('e:'+e.message);}if(!r.ok)throw new Error('r:'+r.status);}
+
+/* ── Confirm modal ── */
+let _confirmResolve = null;
+
+function _sc(title,body) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmBody').innerHTML   = body;
+    document.getElementById('confirmOverlay').classList.remove('hidden');
+    document.getElementById('confirmOk').disabled = false;
+    document.getElementById('confirmOk').textContent = 'Delete';
+  });
+}
+
+document.getElementById('confirmCancel').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').classList.add('hidden');
+  if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
 });
 
-/* ═══════════════════════════════════════════════
-   REFRESH
-═══════════════════════════════════════════════ */
+document.getElementById('confirmOk').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').classList.add('hidden');
+  if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+});
+
+// Close on overlay background click
+document.getElementById('confirmOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('confirmOverlay')) {
+    document.getElementById('confirmOverlay').classList.add('hidden');
+    if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+  }
+});
+
+async function _dr(roomName) {
+  const confirmed = await _sc(
+    'Delete Room',
+    `Delete room <strong>#${_eh(roomName)}</strong> and all its messages?<br><br>This cannot be undone.`
+  );
+  if (!confirmed) return;
+
+  try {
+    await _fd(`rooms/${roomName}`);
+    allMessages = allMessages.filter(m => m.room !== roomName);
+    if (activeRoom === roomName) activeRoom = null;
+    const remainingRooms = [...new Set(allMessages.map(m => m.room))];
+    const uniqueUsers    = new Set(allMessages.map(m => m.user));
+    _us(remainingRooms.length, uniqueUsers.size, allMessages.length,
+      allMessages.filter(m => !m.failed).length);
+    _rs(remainingRooms, allMessages);
+    _rt();
+    _st(`Room #${roomName} deleted.`);
+  } catch(e) {
+    _st('Delete failed: ' + e.message);
+  }
+}
+
+async function _dm(msg) {
+  const confirmed = await _sc(
+    'Delete Message',
+    `Delete this message from <strong>${_eh(msg.user)}</strong> in <strong>#${_eh(msg.room)}</strong>?<br><br>This cannot be undone.`
+  );
+  if (!confirmed) return;
+
+  try {
+    await _fd(`rooms/${msg.room}/messages/${msg.key}`);
+    allMessages = allMessages.filter(m => m.key !== msg.key);
+    const remainingRooms = [...new Set(allMessages.map(m => m.room))];
+    const uniqueUsers    = new Set(allMessages.map(m => m.user));
+    _us(remainingRooms.length, uniqueUsers.size, allMessages.length,
+      allMessages.filter(m => !m.failed).length);
+    _rs(remainingRooms, allMessages);
+    _rt();
+    _st('Message deleted.');
+  } catch(e) {
+    _st('Delete failed: ' + e.message);
+  }
+}
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchQuery = e.target.value.trim();
+  _rt();
+});
+
 document.getElementById('refreshBtn').addEventListener('click', () => {
   activeRoom  = null;
   searchQuery = '';
   document.getElementById('searchInput').value = '';
   document.getElementById('panelTitle').innerHTML = 'All Messages';
-  loadAllData();
-  showToast('Refreshed.');
+  _lad();
+  _st('Refreshed.');
 });
 
-/* ═══════════════════════════════════════════════
-   EXPORT CSV
-═══════════════════════════════════════════════ */
 document.getElementById('exportBtn').addEventListener('click', () => {
   let rows = allMessages;
   if (activeRoom !== null) rows = rows.filter(m => m.room === activeRoom);
@@ -1021,7 +1176,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     );
   }
 
-  if (rows.length === 0) { showToast('Nothing to export.'); return; }
+  if (rows.length === 0) { _st('Nothing to export.'); return; }
 
   const header = ['Timestamp', 'Room', 'User', 'Message'];
   const csvRows = [
@@ -1041,19 +1196,16 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   a.download = `cipherroom-export-${Date.now()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  showToast(`Exported ${rows.length} messages.`);
+  _st(`Exported ${rows.length} messages.`);
 });
 
-/* ═══════════════════════════════════════════════
-   UI HELPERS
-═══════════════════════════════════════════════ */
-function updateStats(rooms, users, messages, decrypted) {
+function _us(rooms,users,messages,decrypted) {
   document.getElementById('statRooms').textContent    = rooms;
   document.getElementById('statUsers').textContent    = users;
   document.getElementById('statMessages').textContent = messages;
   document.getElementById('statDecrypted').textContent = decrypted;
 }
-function updateDecryptStatus(done, total) {
+function _uds(done,total) {
   const el = document.getElementById('decryptStatus');
   if (done >= total && total > 0) {
     el.textContent = `✓ ${done} / ${total} decrypted`;
@@ -1065,34 +1217,34 @@ function updateDecryptStatus(done, total) {
     el.textContent = '';
   }
 }
-function showLoadingState() {
+function _sls() {
   document.getElementById('loadingState').classList.remove('hidden');
   document.getElementById('msgTable').classList.add('hidden');
   document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('msgBody').innerHTML = '';
-  updateStats('—','—','—','—');
+  _us('—','—','—','—');
   document.getElementById('roomList').innerHTML = '<div class="user-item">Loading…</div>';
   document.getElementById('userList').innerHTML = '<div class="user-item">Loading…</div>';
 }
-function showEmptyState() {
+function _ses() {
   document.getElementById('loadingState').classList.add('hidden');
   document.getElementById('msgTable').classList.add('hidden');
   document.getElementById('emptyState').classList.remove('hidden');
 }
-function formatDateTime(ts) {
+function _fdt(ts) {
   if (!ts) return '—';
   const d = new Date(ts);
   const date = d.toLocaleDateString([], {year:'numeric', month:'short', day:'numeric'});
   const time = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
   return date + '\n' + time;
 }
-function escHtml(str) {
+function _eh(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 let toastTimer;
-function showToast(msg) {
+function _st(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.className = 'show';
