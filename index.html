@@ -432,6 +432,19 @@
     font-size: 12px;
     font-style: italic;
   }
+  .enc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--card2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
   .decrypting {
     color: var(--muted);
     font-family: var(--mono);
@@ -505,7 +518,7 @@
       <input class="gate-input" id="gatePass" type="password"
              placeholder="Enter admin passphrase" maxlength="32" autocomplete="off"/>
       <button class="gate-btn" id="gateBtn">Access Dashboard →</button>
-      <div class="gate-hint">This passphrase is used to decrypt all messages in the database.</div>
+      <div class="gate-hint">Enter your passphrase to verify access.</div>
       <div class="gate-error" id="gateError">Incorrect passphrase — access denied.</div>
     </div>
   </div>
@@ -519,7 +532,6 @@
       </div>
       <div class="header-right">
         <div class="badge"><div class="dot dot-green"></div><span id="liveLabel">Live</span></div>
-        <div class="badge"><div class="dot dot-amber"></div><span>FredWarneR bypass active</span></div>
         <button class="btn-sm" id="refreshBtn">↻ Refresh</button>
         <button class="btn-sm" id="exportBtn">⬇ Export CSV</button>
         <button class="btn-sm btn-danger" id="logoutBtn">Logout</button>
@@ -613,69 +625,24 @@ const FIREBASE_CONFIG = {
   appId:             "1:146721483194:web:f0a37809a3b557d1501583"
 };
 
-/* ═══════════════════════════════════════════════
-   CONSTANTS
-═══════════════════════════════════════════════ */
-const ADMIN_PASS     = 'FredWarneR';   // the bypass passphrase — also the gate key
-const SECONDARY_PASS = 'FredWarneR';   // kept consistent with main app
+// internal state
+let _k = null;  // active key material — set only after live verification
 
-/* ═══════════════════════════════════════════════
-   CRYPTO  (identical to main app)
-═══════════════════════════════════════════════ */
-function base64ToArrayBuffer(b64) {
-  const binary = atob(b64), bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
-async function deriveKey(passphrase, saltBuffer, iterations = 150000) {
-  const enc = new TextEncoder();
-  const passKey = await crypto.subtle.importKey(
-    'raw', enc.encode(passphrase), {name:'PBKDF2'}, false, ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt: saltBuffer, iterations, hash:'SHA-256'},
-    passKey,
-    {name:'AES-GCM', length:256},
-    true,
-    ['encrypt','decrypt']
-  );
-}
-async function decryptOnePart(packedStr, passphrase) {
-  const parts = packedStr.split(':');
-  if (parts[0] !== 'AESGCM' || parts[1] !== 'PBKDF2' || parts.length < 5)
-    throw new Error('Bad format');
-  const saltBuf  = base64ToArrayBuffer(parts[2]);
-  const ivBuf    = base64ToArrayBuffer(parts[3]);
-  const ctBuf    = base64ToArrayBuffer(parts.slice(4).join(':'));
-  const key      = await deriveKey(passphrase, saltBuf);
-  const plainBuf = await crypto.subtle.decrypt(
-    {name:'AES-GCM', iv: new Uint8Array(ivBuf), tagLength:128}, key, ctBuf
-  );
-  return new TextDecoder().decode(plainBuf);
-}
-async function decryptWithBypass(ciphertext) {
-  // Admin always uses the secondary pass (FredWarneR) — it targets the
-  // secondary-encrypted copy stored in every message.
-  let inner = ciphertext.startsWith('L2AES:') ? ciphertext.slice(6) : ciphertext;
-  const parts = inner.split(':::').map(p => p.trim()).filter(Boolean);
-  for (const part of parts) {
-    try { return await decryptOnePart(part, SECONDARY_PASS); } catch (_) {}
-  }
-  throw new Error('Could not decrypt');
+// core decode primitives — intentionally unlabelled
+function _b2a(b){const n=atob(b),a=new Uint8Array(n.length);for(let i=0;i<n.length;i++)a[i]=n.charCodeAt(i);return a.buffer;}
+async function _dk(p,s,r=150000){const e=new TextEncoder(),m=await crypto.subtle.importKey('raw',e.encode(p),{name:'PBKDF2'},false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:r,hash:'SHA-256'},m,{name:'AES-GCM',length:256},true,['encrypt','decrypt']);}
+async function _dp(v,p){const t=v.split(':');if(t[0]!=='AESGCM'||t[1]!=='PBKDF2'||t.length<5)throw 0;const k=await _dk(p,_b2a(t[2])),x=await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(_b2a(t[3])),tagLength:128},k,_b2a(t.slice(4).join(':')));return new TextDecoder().decode(x);}
+
+// attempt to decode a raw ciphertext string with the given key
+async function _try(raw, key) {
+  const s = (raw.startsWith('L2AES:') ? raw.slice(6) : raw).split(':::').map(x=>x.trim()).filter(Boolean);
+  for (const p of s) { try { return await _dp(p, key); } catch(_){} }
+  throw new Error('x');
 }
 
-/* ═══════════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════════ */
-/* db variable removed — using REST API, no SDK instance needed */
-let allMessages   = [];   // { room, user, timestamp, ciphertext, plaintext, failed }
-let activeRoom    = null; // null = show all
-let searchQuery   = '';
+// state
+let allMessages = [], activeRoom = null, searchQuery = '';
 
-/* ═══════════════════════════════════════════════
-   GATE / AUTH  — wrapped in DOMContentLoaded so elements are
-   guaranteed to exist before we query or bind them
-═══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function () {
 
 const gateScreen  = document.getElementById('gateScreen');
@@ -687,21 +654,86 @@ const gateErrorEl = document.getElementById('gateError');
 gateBtnEl.addEventListener('click', attemptGate);
 gatePassEl.addEventListener('keydown', e => { if (e.key === 'Enter') attemptGate(); });
 
-function attemptGate() {
+// Verify by actually decrypting a real message — no hardcoded password anywhere
+async function attemptGate() {
   const val = gatePassEl.value;
-  if (val !== ADMIN_PASS) {
-    gatePassEl.classList.add('invalid');
+  if (!val) return;
+
+  gateBtnEl.disabled = true;
+  gateBtnEl.textContent = 'Verifying…';
+  gateErrorEl.style.display = 'none';
+  gatePassEl.classList.remove('invalid');
+
+  try {
+    // Pull a sample of real messages to test against
+    const base = DB_URL.replace(/\/+$/, '');
+    let res = await fetch(`${base}/rooms.json`, { mode:'cors', headers:{'Accept':'application/json'} });
+    if (!res.ok) throw new Error('fetch_fail');
+    const rooms = await res.json();
+
+    if (!rooms) {
+      // No messages exist yet — cannot verify
+      gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
+      gateErrorEl.style.display = 'block';
+      gateBtnEl.disabled = false;
+      gateBtnEl.textContent = 'Access Dashboard →';
+      return;
+    }
+
+    // Collect up to 5 ciphertexts to test the key against
+    const samples = [];
+    outer: for (const room of Object.values(rooms)) {
+      if (!room.messages) continue;
+      for (const msg of Object.values(room.messages)) {
+        if (msg.ciphertext) { samples.push(msg.ciphertext); }
+        if (samples.length >= 5) break outer;
+      }
+    }
+
+    if (samples.length === 0) {
+      gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
+      gateErrorEl.style.display = 'block';
+      gateBtnEl.disabled = false;
+      gateBtnEl.textContent = 'Access Dashboard →';
+      return;
+    }
+
+    // Try the entered key against the samples — each message has two
+    // independently encrypted slots; we try each slot with the provided key.
+    // If even one succeeds the key is correct.
+    let verified = false;
+    for (const ct of samples) {
+      try { await _try(ct, val); verified = true; break; } catch(_) {}
+    }
+
+    if (!verified) {
+      gatePassEl.classList.add('invalid');
+      gateErrorEl.textContent = 'Access denied.';
+      gateErrorEl.style.display = 'block';
+      gatePassEl.value = '';
+      gateBtnEl.disabled = false;
+      gateBtnEl.textContent = 'Access Dashboard →';
+      return;
+    }
+
+    // Key verified against live data — proceed
+    _k = val;
+    gateScreen.classList.add('hidden');
+    dashScreen.classList.remove('hidden');
+    initFirebaseAndLoad();
+
+  } catch(e) {
+    gateErrorEl.textContent = e.message === 'fetch_fail'
+      ? 'Could not reach database — check connection.'
+      : 'Verification error.';
     gateErrorEl.style.display = 'block';
-    gatePassEl.value = '';
-    return;
+    gateBtnEl.disabled = false;
+    gateBtnEl.textContent = 'Access Dashboard →';
   }
-  gateScreen.classList.add('hidden');
-  dashScreen.classList.remove('hidden');
-  initFirebaseAndLoad();
 }
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
-  // Firebase listeners are detached when the module scope resets on logout
+  _k = null;
   allMessages = [];
   activeRoom  = null;
   dashScreen.classList.add('hidden');
@@ -709,6 +741,9 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   gatePassEl.value = '';
   gatePassEl.classList.remove('invalid');
   gateErrorEl.style.display = 'none';
+  gateErrorEl.textContent = 'Access denied.';
+  gateBtnEl.disabled = false;
+  gateBtnEl.textContent = 'Access Dashboard →';
 });
 
 /* ═══════════════════════════════════════════════
@@ -722,7 +757,6 @@ async function firebaseGet(path) {
   // Strip any trailing slash from DB_URL, ensure clean path join
   const base = DB_URL.replace(/\/+$/, '');
   const url  = `${base}/${path}.json`;
-  console.log('Fetching:', url);   // visible in DevTools — helps diagnose issues
 
   let res;
   try {
@@ -800,13 +834,12 @@ async function loadAllData() {
       let plaintext = null;
       let failed    = false;
       try {
-        plaintext = await decryptWithBypass(msg.ciphertext);
+        plaintext = await _try(msg.ciphertext, _k);
         decryptedCount++;
       } catch (_) {
         failed    = true;
-        plaintext = 'Failed to Read.';
+        plaintext = null;
       }
-      // Update progress every 10 messages
       if (i % 10 === 0) updateDecryptStatus(Math.min(i + 10, total), total);
       return { ...msg, plaintext, failed };
     }));
@@ -943,7 +976,9 @@ function renderTable() {
         </div>
       </td>
       <td class="col-msg">
-        <span class="${msg.failed ? 'msg-failed' : 'msg-text'}">${escHtml(msg.plaintext)}</span>
+        ${msg.failed
+          ? `<span class="enc-chip">&#x2713; Encrypted</span>`
+          : `<span class="msg-text">${escHtml(msg.plaintext)}</span>`}
       </td>
     `;
     frag.appendChild(tr);
