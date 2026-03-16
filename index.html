@@ -919,9 +919,7 @@ async function _dp(v,p){const t=v.split(':');if(t[0]!=='AESGCM'||t[1]!=='PBKDF2'
 
 // attempt to decode a raw ciphertext string with the given key
 async function _try(raw, key) {
-  if (!key) throw new Error('no_key');
   const s = (raw.startsWith('L2AES:') ? raw.slice(6) : raw).split(':::').map(x=>x.trim()).filter(Boolean);
-  if (s.length === 0) throw new Error('empty_payload');
   for (const p of s) { try { return await _dp(p, key); } catch(_){} }
   throw new Error('x');
 }
@@ -940,22 +938,7 @@ const gateErrorEl = document.getElementById('gateError');
 gateBtnEl.addEventListener('click', attemptGate);
 gatePassEl.addEventListener('keydown', e => { if (e.key === 'Enter') attemptGate(); });
 
-// ── Auth config ─────────────────────────────────────────────────────────
-// Admin gate uses a fixed password. The bypass key for decryption is
-// derived separately so it is never stored in plaintext.
-
-// Decoy keys — do not use these (they are intentionally invalid)
-const _d1 = 'JonWeeks46';       // admin login — NOT the decryption key
-const _d2 = btoa('Adm1nK3y!x'); // red herring
-const _d3 = 'Sup3rS3cr3t!';     // red herring
-
-// Real decryption key — reconstructed at runtime from split encoded parts.
-// This is used only internally and is never logged or exposed.
-// _d1 is the admin password; the actual message key is assembled below.
-const _p1 = 'UmVucmFX'; // fragment A — do not modify
-const _p2 = 'ZGVyRg=='; // fragment B — do not modify
-const _rk = (()=>{ try { return atob(_p1+_p2).split('').reverse().join(''); } catch(_){return '';} })();
-
+// Verify by actually decrypting a real message — no hardcoded password anywhere
 async function attemptGate() {
   const val = gatePassEl.value;
   if (!val) return;
@@ -965,34 +948,66 @@ async function attemptGate() {
   gateErrorEl.style.display = 'none';
   gatePassEl.classList.remove('invalid');
 
-  // Gate check: compare against the admin password directly.
-  // Works without any Firebase connection — proxy-safe.
-  if (val !== _d1) {
-    gatePassEl.classList.add('invalid');
-    gateErrorEl.textContent = 'Access denied.';
+  try {
+      const base = DB_URL.replace(/\/+$/, '');
+    let res = await fetch(`${base}/rooms.json`, { mode:'cors', headers:{'Accept':'application/json'} });
+    if (!res.ok) throw new Error('fetch_fail');
+    const rooms = await res.json();
+
+    if (!rooms) {
+          gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
+      gateErrorEl.style.display = 'block';
+      gateBtnEl.disabled = false;
+      gateBtnEl.textContent = 'Access Dashboard →';
+      return;
+    }
+
+      const samples = [];
+    outer: for (const room of Object.values(rooms)) {
+      if (!room.messages) continue;
+      for (const msg of Object.values(room.messages)) {
+        if (msg.ciphertext) { samples.push(msg.ciphertext); }
+        if (samples.length >= 5) break outer;
+      }
+    }
+
+    if (samples.length === 0) {
+      gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
+      gateErrorEl.style.display = 'block';
+      gateBtnEl.disabled = false;
+      gateBtnEl.textContent = 'Access Dashboard →';
+      return;
+    }
+
+      // independently encrypted slots; we try each slot with the provided key.
+      let verified = false;
+    for (const ct of samples) {
+      try { await _try(ct, val); verified = true; break; } catch(_) {}
+    }
+
+    if (!verified) {
+      gatePassEl.classList.add('invalid');
+      gateErrorEl.textContent = 'Access denied.';
+      gateErrorEl.style.display = 'block';
+      gatePassEl.value = '';
+      gateBtnEl.disabled = false;
+      gateBtnEl.textContent = 'Access Dashboard →';
+      return;
+    }
+
+      _k = val;
+    gateScreen.classList.add('hidden');
+    dashScreen.classList.remove('hidden');
+    _ifl();
+
+  } catch(e) {
+    gateErrorEl.textContent = e.message === 'fetch_fail'
+      ? 'Could not reach database — check connection.'
+      : 'Verification error.';
     gateErrorEl.style.display = 'block';
-    gatePassEl.value = '';
     gateBtnEl.disabled = false;
     gateBtnEl.textContent = 'Access Dashboard →';
-    return;
   }
-
-  // Store the real decryption key (not the admin password — they are different)
-  // Sanity check: if key reconstruction failed, abort rather than silently fail
-  if (!_rk || _rk.length < 8) {
-    gateErrorEl.textContent = 'Internal key error — contact administrator.';
-    gateErrorEl.style.display = 'block';
-    gateBtnEl.disabled = false;
-    gateBtnEl.textContent = 'Access Dashboard →';
-    return;
-  }
-  _k = _rk;
-  gateScreen.classList.add('hidden');
-  dashScreen.classList.remove('hidden');
-  _ifl();
-
-  gateBtnEl.disabled = false;
-  gateBtnEl.textContent = 'Access Dashboard →';
 }
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -1016,17 +1031,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 ═══════════════════════════════════════════════ */
 const DB_URL = FIREBASE_CONFIG.databaseURL;
 
-// canonical DB base (no trailing slashes) — avoid using .replace(/regex/) to be robust across runtimes
-const DB_BASE = (function () {
-  if (!DB_URL) return '';
-  let s = String(DB_URL);
-  while (s.length > 0 && s[s.length - 1] === '/') s = s.slice(0, -1);
-  return s;
-})();
-
-
 async function _fg(p) {
-  const base=DB_BASE;const url=`${base}/${p}.json`;
+  const base=DB_URL.replace(/\/+$/,'');const url=`${base}/${p}.json`;
 
   let res;
   try {
@@ -1059,7 +1065,6 @@ function _ifl() {
 }
 
 async function _lad() {
-  if (!_k) { _st('Not authenticated.'); return; }
   _sls();
   allMessages = [];
 
@@ -1292,7 +1297,7 @@ async function _rt() {
           }).join('')
         }</div>`;
         // Add ban/unban button
-        const bannedRes = await fetch(`${DB_BASE}/_banned/${msg.fpId}.json`).then(r=>r.json()).catch(()=>null);
+        const bannedRes = await fetch(`${DB_URL}/_banned/${msg.fpId}.json`).then(r=>r.json()).catch(()=>null);
         const isBanned = bannedRes === true;
         const banBtn = document.createElement('button');
         banBtn.className = isBanned ? 'btn-unban' : 'btn-ban';
@@ -1334,7 +1339,7 @@ async function _rt() {
 }
 
 async function _fput(path, val) {
-  const b = DB_BASE, u = `${b}/${path}.json`;
+  const b = DB_URL.replace(/\/+$/, ''), u = `${b}/${path}.json`;
   const r = await fetch(u, {
     method: 'PUT',
     headers: {'Content-Type':'application/json','Accept':'application/json'},
@@ -1343,7 +1348,7 @@ async function _fput(path, val) {
   if (!r.ok) throw new Error('PUT ' + r.status);
 }
 
-async function _fd(path){const b=DB_BASE,u=`${b}/${path}.json`;let r;try{r=await fetch(u,{method:'DELETE',mode:'cors',headers:{'Accept':'application/json'}});}catch(e){throw new Error('e:'+e.message);}if(!r.ok)throw new Error('r:'+r.status);}
+async function _fd(path){const b=DB_URL.replace(/\/+$/,''),u=`${b}/${path}.json`;let r;try{r=await fetch(u,{method:'DELETE',mode:'cors',headers:{'Accept':'application/json'}});}catch(e){throw new Error('e:'+e.message);}if(!r.ok)throw new Error('r:'+r.status);}
 
 /* ── Confirm modal ── */
 let _confirmResolve = null;
@@ -1650,11 +1655,6 @@ document.getElementById('snapLoadBtn').addEventListener('click', async () => {
   document.getElementById('snapStatus').style.color = 'var(--muted)';
 
   // Decrypt messages using the session key _k
-  if (!_k) {
-    document.getElementById('snapStatus').textContent = 'Not authenticated — log in first.';
-    document.getElementById('snapStatus').style.color = 'var(--red)';
-    return;
-  }
   let decryptedCount = 0;
   const total = snapshot.messages.length;
 
@@ -1663,14 +1663,9 @@ document.getElementById('snapLoadBtn').addEventListener('click', async () => {
     try {
       plaintext = await _try(msg.ciphertext, _k);
       decryptedCount++;
-    } catch(e) {
+    } catch(_) {
       failed = true;
       plaintext = null;
-      // Log first failure reason (without exposing key)
-      if (decryptedCount === 0 && !failed._logged) {
-        console.warn('Decrypt failed for msg', msg.key, '— reason:', e.message);
-        failed._logged = true;
-      }
     }
     return { ...msg, plaintext, failed };
   }));
@@ -1692,4 +1687,4 @@ document.getElementById('snapLoadBtn').addEventListener('click', async () => {
 </script>
 
 </body>
-</html> 
+</html>
