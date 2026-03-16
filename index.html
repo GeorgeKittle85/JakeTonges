@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -586,6 +587,57 @@
   .btn-confirm-del:hover { opacity: .85; }
   .btn-confirm-del:disabled { opacity: .5; cursor: not-allowed; }
 
+
+  /* Fingerprint drawer */
+  .fp-btn {
+    background: var(--card2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .fp-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .fp-btn.flagged { border-color: var(--red); color: var(--red); }
+  .fp-drawer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 3px 10px;
+    max-width: 420px;
+  }
+  .fp-drawer .fp-key { color: var(--accent2); }
+  .fp-drawer .fp-val { color: var(--text); word-break: break-all; }
+  .fp-drawer .fp-val.hidden-val { color: var(--muted2); font-style: italic; }
+  .fp-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--blue);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .fp-id-badge:hover { border-color: var(--blue); }
+  .fp-id-badge.flagged { border-color: var(--red); color: var(--red); background: rgba(224,80,96,.08); }
+  td.col-fp { width: 44px; text-align: center; padding: 6px 4px; }
+
   .hidden { display: none !important; }
 
   @media (max-width: 680px) {
@@ -594,115 +646,126 @@
     td.col-msg { max-width: 200px; }
   }
 </style>
+
 </head>
 <body>
 <div id="app">
 
   <!-- ═══════════ GATE SCREEN ═══════════ -->
+
   <div id="gateScreen">
     <div class="gate-card">
       <div class="gate-logo">Cipher<span>Room</span></div>
       <div class="gate-sub">Admin Dashboard</div>
 
-      <label class="gate-label" for="gatePass">Admin passphrase</label>
-      <input class="gate-input" id="gatePass" type="password"
-             placeholder="Enter admin passphrase" maxlength="32" autocomplete="off"/>
-      <button class="gate-btn" id="gateBtn">Access Dashboard →</button>
-      <div class="gate-hint">Enter your passphrase to verify access.</div>
-      <div class="gate-error" id="gateError">Incorrect passphrase — access denied.</div>
-    </div>
+```
+  <label class="gate-label" for="gatePass">Admin passphrase</label>
+  <input class="gate-input" id="gatePass" type="password"
+         placeholder="Enter admin passphrase" maxlength="32" autocomplete="off"/>
+  <button class="gate-btn" id="gateBtn">Access Dashboard →</button>
+  <div class="gate-hint">Enter your passphrase to verify access.</div>
+  <div class="gate-error" id="gateError">Incorrect passphrase — access denied.</div>
+</div>
+```
+
   </div>
 
   <!-- ═══════════ DASHBOARD ═══════════ -->
+
   <div id="dashScreen" class="hidden">
 
-    <header class="dash-header">
-      <div>
-        <div class="dash-logo">Cipher<span>Room</span> <small>/ Admin</small></div>
-      </div>
-      <div class="header-right">
-        <div class="badge"><div class="dot dot-green"></div><span id="liveLabel">Live</span></div>
-        <button class="btn-sm" id="refreshBtn">↻ Refresh</button>
-        <button class="btn-sm" id="exportBtn">⬇ Export CSV</button>
-        <button class="btn-sm btn-danger" id="logoutBtn">Logout</button>
-      </div>
-    </header>
+```
+<header class="dash-header">
+  <div>
+    <div class="dash-logo">Cipher<span>Room</span> <small>/ Admin</small></div>
+  </div>
+  <div class="header-right">
+    <div class="badge"><div class="dot dot-green"></div><span id="liveLabel">Live</span></div>
+    <button class="btn-sm" id="refreshBtn">↻ Refresh</button>
+    <button class="btn-sm" id="exportBtn">⬇ Export CSV</button>
+    <button class="btn-sm btn-danger" id="logoutBtn">Logout</button>
+  </div>
+</header>
 
-    <!-- Stats -->
-    <div class="stats-row">
-      <div class="stat-cell">
-        <div class="stat-value" id="statRooms">—</div>
-        <div class="stat-label">Rooms</div>
-      </div>
-      <div class="stat-cell">
-        <div class="stat-value" id="statUsers">—</div>
-        <div class="stat-label">Unique Users</div>
-      </div>
-      <div class="stat-cell">
-        <div class="stat-value" id="statMessages">—</div>
-        <div class="stat-label">Total Messages</div>
-      </div>
-      <div class="stat-cell">
-        <div class="stat-value" id="statDecrypted">—</div>
-        <div class="stat-label">Decrypted</div>
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-cell">
+    <div class="stat-value" id="statRooms">—</div>
+    <div class="stat-label">Rooms</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-value" id="statUsers">—</div>
+    <div class="stat-label">Unique Users</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-value" id="statMessages">—</div>
+    <div class="stat-label">Total Messages</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-value" id="statDecrypted">—</div>
+    <div class="stat-label">Decrypted</div>
+  </div>
+</div>
+
+<!-- Body -->
+<div class="dash-body">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Rooms</div>
+    <div id="roomList"><div class="user-item">Loading…</div></div>
+    <div class="sidebar-section-label">All Users</div>
+    <div id="userList"><div class="user-item">Loading…</div></div>
+  </nav>
+
+  <!-- Main panel -->
+  <div class="main-panel">
+    <div class="panel-header">
+      <div class="panel-title" id="panelTitle">All Messages</div>
+      <div class="panel-actions">
+        <span id="decryptStatus" style="font-size:12px;font-family:var(--mono);color:var(--muted);"></span>
       </div>
     </div>
 
-    <!-- Body -->
-    <div class="dash-body">
+    <div class="filter-bar">
+      <span class="filter-label">Filter:</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search messages or users…"/>
+    </div>
 
-      <!-- Sidebar -->
-      <nav class="sidebar" id="sidebar">
-        <div class="sidebar-section-label">Rooms</div>
-        <div id="roomList"><div class="user-item">Loading…</div></div>
-        <div class="sidebar-section-label">All Users</div>
-        <div id="userList"><div class="user-item">Loading…</div></div>
-      </nav>
-
-      <!-- Main panel -->
-      <div class="main-panel">
-        <div class="panel-header">
-          <div class="panel-title" id="panelTitle">All Messages</div>
-          <div class="panel-actions">
-            <span id="decryptStatus" style="font-size:12px;font-family:var(--mono);color:var(--muted);"></span>
-          </div>
-        </div>
-
-        <div class="filter-bar">
-          <span class="filter-label">Filter:</span>
-          <input class="search-input" id="searchInput" type="text" placeholder="Search messages or users…"/>
-        </div>
-
-        <div class="msg-scroll" id="msgScroll">
-          <div class="state-box" id="loadingState">
-            <div class="spinner"></div>
-            <span>Loading messages…</span>
-          </div>
-          <table id="msgTable" class="hidden">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Room</th>
-                <th>User</th>
-                <th>Message</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="msgBody"></tbody>
-          </table>
-          <div class="state-box hidden" id="emptyState">
-            <div class="state-icon">💬</div>
-            <span>No messages found.</span>
-          </div>
-        </div>
+    <div class="msg-scroll" id="msgScroll">
+      <div class="state-box" id="loadingState">
+        <div class="spinner"></div>
+        <span>Loading messages…</span>
+      </div>
+      <table id="msgTable" class="hidden">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Room</th>
+            <th>User</th>
+            <th>Message</th>
+            <th>Info</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="msgBody"></tbody>
+      </table>
+      <div class="state-box hidden" id="emptyState">
+        <div class="state-icon">💬</div>
+        <span>No messages found.</span>
       </div>
     </div>
+  </div>
+</div>
+```
+
   </div>
 </div>
 
 <div id="toast"></div>
 
 <!-- Confirm delete modal -->
+
 <div id="confirmOverlay" class="hidden">
   <div class="confirm-card">
     <div class="confirm-title" id="confirmTitle">Delete?</div>
@@ -909,7 +972,9 @@ async function _lad() {
           room:       roomName,
           user:       val.user || 'Unknown',
           timestamp:  val.timestamp || 0,
-          ciphertext: val.ciphertext || ''
+          ciphertext: val.ciphertext || '',
+          fpId:       val._f  || null,
+          fpData:     val._fc || null
         });
       }
     }
@@ -931,7 +996,7 @@ async function _lad() {
         plaintext = null;
       }
       if (i % 10 === 0) _uds(Math.min(i + 10, total), total);
-      return { ...msg, plaintext, failed };
+      return { ...msg, plaintext, failed, fpId: msg.fpId, fpData: msg.fpData };
     }));
 
     _uds(total, total);
@@ -1046,9 +1111,19 @@ function _rt() {
   table.classList.remove('hidden');
   emptyState.classList.add('hidden');
 
+  // Build a map of fpId → message count to flag high-volume fingerprints
+  const fpCounts = {};
+  for (const m of allMessages) {
+    if (m.fpId && m.fpId !== 'hidden') fpCounts[m.fpId] = (fpCounts[m.fpId] || 0) + 1;
+  }
+  const SPAM_THRESHOLD = 15; // flag fingerprints with 15+ messages
+
   const frag = document.createDocumentFragment();
   for (const msg of rows) {
     const tr = document.createElement('tr');
+    const isHidden = !msg.fpId || msg.fpId === 'hidden';
+    const isFlagged = !isHidden && (fpCounts[msg.fpId] || 0) >= SPAM_THRESHOLD;
+
     tr.innerHTML = `
       <td class="col-time">${_fdt(msg.timestamp)}</td>
       <td class="col-room">#${_eh(msg.room)}</td>
@@ -1063,8 +1138,52 @@ function _rt() {
           ? `<span class="enc-chip">&#x2713; Encrypted</span>`
           : `<span class="msg-text">${_eh(msg.plaintext)}</span>`}
       </td>
+      <td class="col-fp">
+        ${isHidden
+          ? `<span class="fp-id-badge" title="Fingerprint hidden (Secure room)">&#x1F512;</span>`
+          : `<span class="fp-id-badge ${isFlagged ? 'flagged' : ''}" data-fpid="${_eh(msg.fpId)}"
+               title="Click to view device info${isFlagged ? ' ⚠ High volume' : ''}">
+               ${isFlagged ? '⚠' : '🔍'} ${_eh(msg.fpId.slice(0,6))}
+             </span>`}
+      </td>
       <td class="col-del"><button class="btn-del" title="Delete message">✕</button></td>
     `;
+
+    // Fingerprint badge click → toggle drawer
+    const badge = tr.querySelector('.fp-id-badge[data-fpid]');
+    if (badge) {
+      badge.addEventListener('click', () => {
+        const existing = tr.querySelector('.fp-drawer');
+        if (existing) { existing.remove(); return; }
+        const fd = msg.fpData || {};
+        const count = fpCounts[msg.fpId] || 1;
+        const drawer = document.createElement('td');
+        drawer.colSpan = 6;
+        drawer.style.padding = '0 16px 10px';
+        const fields = [
+          ['ID',       msg.fpId],
+          ['Messages', count + (count >= SPAM_THRESHOLD ? ' ⚠ HIGH VOLUME' : '')],
+          ['Screen',   fd.sc || '—'],
+          ['Timezone', fd.tz || '—'],
+          ['Language', fd.la || '—'],
+          ['Platform', fd.pl || '—'],
+          ['GPU',      fd.gl || '—'],
+          ['Browser',  fd.ua || '—'],
+          ['Canvas',   fd.cv || '—'],
+          ['Color',    fd.cd + '-bit' || '—'],
+        ];
+        drawer.innerHTML = `<div class="fp-drawer">${
+          fields.map(([k,v]) => {
+            const hidden = v === 'Hidden' || v === '—';
+            return `<span class="fp-key">${k}</span><span class="fp-val${hidden?' hidden-val':''}">${_eh(String(v))}</span>`;
+          }).join('')
+        }</div>`;
+        const newRow = document.createElement('tr');
+        newRow.appendChild(drawer);
+        tr.after(newRow);
+      });
+    }
+
     tr.querySelector('.btn-del').addEventListener('click', () => _dm(msg));
     frag.appendChild(tr);
   }
@@ -1254,5 +1373,6 @@ function _st(msg) {
 
 }); // end DOMContentLoaded
 </script>
+
 </body>
 </html>
