@@ -637,6 +637,32 @@
   .fp-id-badge:hover { border-color: var(--blue); }
   .fp-id-badge.flagged { border-color: var(--red); color: var(--red); background: rgba(224,80,96,.08); }
   td.col-fp { width: 44px; text-align: center; padding: 6px 4px; }
+  .btn-ban {
+    background: rgba(224,80,96,.15);
+    border: 1px solid var(--red);
+    color: var(--red);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-top: 8px;
+  }
+  .btn-ban:hover { background: rgba(224,80,96,.3); }
+  .btn-unban {
+    background: rgba(62,207,142,.15);
+    border: 1px solid var(--green);
+    color: var(--green);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-top: 8px;
+  }
+  .btn-unban:hover { background: rgba(62,207,142,.3); }
 
   .hidden { display: none !important; }
 
@@ -955,7 +981,7 @@ async function _lad() {
 
     if (!roomsData) {
       _us(0,0,0,0);
-      _rs([]);
+      await _rs([]);
       _ses();
       return;
     }
@@ -1004,8 +1030,8 @@ async function _lad() {
       const uniqueUsers = new Set(allMessages.map(m => m.user));
     _us(roomNames.length, uniqueUsers.size, total, decryptedCount);
 
-    _rs(roomNames, allMessages);
-    _rt();
+    await _rs(roomNames, allMessages);
+    await _rt();
 
   } catch (e) {
     console.error('Load error:', e);
@@ -1014,7 +1040,7 @@ async function _lad() {
   }
 }
 
-function _rs(roomNames, messages = []) {
+async function _rs(roomNames, messages = []) {
   const roomList = document.getElementById('roomList');
   const userList = document.getElementById('userList');
 
@@ -1028,7 +1054,7 @@ function _rs(roomNames, messages = []) {
     <span class="room-name">All Rooms</span>
     <span class="room-count">${messages.length}</span>
   `;
-  allItem.addEventListener('click', () => _sel(null,allItem));
+  allItem.addEventListener('click', async () => { await _sel(null,allItem); });
   roomList.appendChild(allItem);
 
   for (const name of roomNames) {
@@ -1045,7 +1071,7 @@ function _rs(roomNames, messages = []) {
       e.stopPropagation();
       _dr(name);
     });
-    item.addEventListener('click', () => _sel(name,item));
+    item.addEventListener('click', async () => { await _sel(name,item); });
     roomList.appendChild(item);
   }
 
@@ -1066,7 +1092,7 @@ function _rs(roomNames, messages = []) {
   }
 }
 
-function _sel(name,itemEl) {
+async function _sel(name,itemEl) {
   activeRoom = name;
   document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
   itemEl.classList.add('active');
@@ -1074,10 +1100,10 @@ function _sel(name,itemEl) {
   titleEl.innerHTML = name
     ? `Room: <span>#${_eh(name)}</span>`
     : 'All Messages';
-  _rt();
+  await _rt();
 }
 
-function _rt() {
+async function _rt() {
   const tbody      = document.getElementById('msgBody');
   const table      = document.getElementById('msgTable');
   const emptyState = document.getElementById('emptyState');
@@ -1178,6 +1204,36 @@ function _rt() {
             return `<span class="fp-key">${k}</span><span class="fp-val${hidden?' hidden-val':''}">${_eh(String(v))}</span>`;
           }).join('')
         }</div>`;
+        // Add ban/unban button
+        const bannedRes = await fetch(`${DB_URL}/_banned/${msg.fpId}.json`).then(r=>r.json()).catch(()=>null);
+        const isBanned = bannedRes === true;
+        const banBtn = document.createElement('button');
+        banBtn.className = isBanned ? 'btn-unban' : 'btn-ban';
+        banBtn.textContent = isBanned ? '✓ Unban this device' : '⊘ Ban this device';
+        banBtn.addEventListener('click', async () => {
+          const confirmed = await _sc(
+            isBanned ? 'Unban Device' : 'Ban Device',
+            isBanned
+              ? `Allow fingerprint <strong>${_eh(msg.fpId)}</strong> to send messages again?`
+              : `Block all messages from fingerprint <strong>${_eh(msg.fpId)}</strong>?<br><br>They will see "Your device is not allowed" when they try to send.`
+          );
+          if (!confirmed) return;
+          try {
+            if (isBanned) {
+              await _fd(`_banned/${msg.fpId}`);
+              banBtn.className = 'btn-ban';
+              banBtn.textContent = '⊘ Ban this device';
+              _st('Device unbanned.');
+            } else {
+              await _fput(`_banned/${msg.fpId}`, true);
+              banBtn.className = 'btn-unban';
+              banBtn.textContent = '✓ Unban this device';
+              _st('Device banned — they can no longer send messages.');
+            }
+          } catch(e) { _st('Action failed: ' + e.message); }
+        });
+        drawer.querySelector('.fp-drawer').after(banBtn);
+
         const newRow = document.createElement('tr');
         newRow.appendChild(drawer);
         tr.after(newRow);
@@ -1190,19 +1246,29 @@ function _rt() {
   tbody.appendChild(frag);
 }
 
+async function _fput(path, val) {
+  const b = DB_URL.replace(/\/+$/, ''), u = `${b}/${path}.json`;
+  const r = await fetch(u, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json','Accept':'application/json'},
+    body: JSON.stringify(val)
+  });
+  if (!r.ok) throw new Error('PUT ' + r.status);
+}
+
 async function _fd(path){const b=DB_URL.replace(/\/+$/,''),u=`${b}/${path}.json`;let r;try{r=await fetch(u,{method:'DELETE',mode:'cors',headers:{'Accept':'application/json'}});}catch(e){throw new Error('e:'+e.message);}if(!r.ok)throw new Error('r:'+r.status);}
 
 /* ── Confirm modal ── */
 let _confirmResolve = null;
 
-function _sc(title,body) {
+function _sc(title, body, okLabel) {
   return new Promise(resolve => {
     _confirmResolve = resolve;
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmBody').innerHTML   = body;
     document.getElementById('confirmOverlay').classList.remove('hidden');
     document.getElementById('confirmOk').disabled = false;
-    document.getElementById('confirmOk').textContent = 'Delete';
+    document.getElementById('confirmOk').textContent = okLabel || 'Confirm';
   });
 }
 
@@ -1227,7 +1293,8 @@ document.getElementById('confirmOverlay').addEventListener('click', (e) => {
 async function _dr(roomName) {
   const confirmed = await _sc(
     'Delete Room',
-    `Delete room <strong>#${_eh(roomName)}</strong> and all its messages?<br><br>This cannot be undone.`
+    `Delete room <strong>#${_eh(roomName)}</strong> and all its messages?<br><br>This cannot be undone.`,
+    'Delete'
   );
   if (!confirmed) return;
 
@@ -1239,8 +1306,8 @@ async function _dr(roomName) {
     const uniqueUsers    = new Set(allMessages.map(m => m.user));
     _us(remainingRooms.length, uniqueUsers.size, allMessages.length,
       allMessages.filter(m => !m.failed).length);
-    _rs(remainingRooms, allMessages);
-    _rt();
+    await _rs(remainingRooms, allMessages);
+    await _rt();
     _st(`Room #${roomName} deleted.`);
   } catch(e) {
     _st('Delete failed: ' + e.message);
@@ -1250,7 +1317,8 @@ async function _dr(roomName) {
 async function _dm(msg) {
   const confirmed = await _sc(
     'Delete Message',
-    `Delete this message from <strong>${_eh(msg.user)}</strong> in <strong>#${_eh(msg.room)}</strong>?<br><br>This cannot be undone.`
+    `Delete this message from <strong>${_eh(msg.user)}</strong> in <strong>#${_eh(msg.room)}</strong>?<br><br>This cannot be undone.`,
+    'Delete'
   );
   if (!confirmed) return;
 
@@ -1261,8 +1329,8 @@ async function _dm(msg) {
     const uniqueUsers    = new Set(allMessages.map(m => m.user));
     _us(remainingRooms.length, uniqueUsers.size, allMessages.length,
       allMessages.filter(m => !m.failed).length);
-    _rs(remainingRooms, allMessages);
-    _rt();
+    await _rs(remainingRooms, allMessages);
+    await _rt();
     _st('Message deleted.');
   } catch(e) {
     _st('Delete failed: ' + e.message);
@@ -1271,15 +1339,15 @@ async function _dm(msg) {
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
   searchQuery = e.target.value.trim();
-  _rt();
+  await _rt();
 });
 
-document.getElementById('refreshBtn').addEventListener('click', () => {
+document.getElementById('refreshBtn').addEventListener('click', async () => {
   activeRoom  = null;
   searchQuery = '';
   document.getElementById('searchInput').value = '';
   document.getElementById('panelTitle').innerHTML = 'All Messages';
-  _lad();
+  await _lad();
   _st('Refreshed.');
 });
 
