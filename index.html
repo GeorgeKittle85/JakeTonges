@@ -1178,7 +1178,7 @@ async function _rt() {
     // Fingerprint badge click → toggle drawer
     const badge = tr.querySelector('.fp-id-badge[data-fpid]');
     if (badge) {
-      badge.addEventListener('click', () => {
+      badge.addEventListener('click', async () => {
         const existing = tr.querySelector('.fp-drawer');
         if (existing) { existing.remove(); return; }
         const fd = msg.fpData || {};
