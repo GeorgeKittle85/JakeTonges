@@ -664,6 +664,80 @@
   }
   .btn-unban:hover { background: rgba(62,207,142,.3); }
 
+
+  /* Snapshot import/export modal */
+  #snapOverlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.75);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; padding: 20px;
+  }
+  .snap-card {
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 24px;
+    width: 100%; max-width: 680px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.6);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .snap-title {
+    font-family: var(--display);
+    font-size: 20px; font-weight: 700;
+    letter-spacing: .03em; color: var(--text);
+  }
+  .snap-desc {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted); line-height: 1.6;
+  }
+  .snap-textarea {
+    width: 100%; height: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono); font-size: 11px;
+    padding: 10px; resize: vertical;
+    outline: none; line-height: 1.5;
+    transition: border-color .2s;
+  }
+  .snap-textarea:focus { border-color: var(--accent); }
+  .snap-actions {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .btn-snap-copy {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 8px;
+    color: #fff; font-family: var(--display);
+    font-size: 14px; font-weight: 600;
+    padding: 9px 18px; cursor: pointer;
+    transition: opacity .18s;
+  }
+  .btn-snap-copy:hover { opacity: .85; }
+  .btn-snap-load {
+    background: var(--card2);
+    border: 1px solid var(--accent);
+    border-radius: 8px; color: var(--accent);
+    font-family: var(--mono); font-size: 12px;
+    padding: 9px 18px; cursor: pointer;
+    transition: all .18s;
+  }
+  .btn-snap-load:hover { background: rgba(0,200,168,.1); }
+  .btn-snap-close {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px; color: var(--muted);
+    font-family: var(--mono); font-size: 12px;
+    padding: 9px 18px; cursor: pointer;
+    transition: all .18s;
+  }
+  .btn-snap-close:hover { border-color: var(--red); color: var(--red); }
+  .snap-status {
+    font-family: var(--mono); font-size: 11px;
+    min-height: 16px; color: var(--accent);
+  }
+
   .hidden { display: none !important; }
 
   @media (max-width: 680px) {
@@ -708,6 +782,8 @@
   <div class="header-right">
     <div class="badge"><div class="dot dot-green"></div><span id="liveLabel">Live</span></div>
     <button class="btn-sm" id="refreshBtn">↻ Refresh</button>
+    <button class="btn-sm" id="snapExportBtn">📋 Copy Snapshot</button>
+    <button class="btn-sm" id="snapImportBtn">📥 Load Snapshot</button>
     <button class="btn-sm" id="exportBtn">⬇ Export CSV</button>
     <button class="btn-sm btn-danger" id="logoutBtn">Logout</button>
   </div>
@@ -789,6 +865,22 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- Snapshot export/import modal -->
+
+<div id="snapOverlay" class="hidden">
+  <div class="snap-card">
+    <div class="snap-title" id="snapTitle">Snapshot</div>
+    <div class="snap-desc" id="snapDesc"></div>
+    <textarea class="snap-textarea" id="snapTextarea" spellcheck="false"></textarea>
+    <div class="snap-status" id="snapStatus"></div>
+    <div class="snap-actions">
+      <button class="btn-snap-close" id="snapClose">Close</button>
+      <button class="btn-snap-load hidden" id="snapLoadBtn">Load Data →</button>
+      <button class="btn-snap-copy hidden" id="snapCopyBtn">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
 
 <!-- Confirm delete modal -->
 
@@ -1438,6 +1530,158 @@ function _st(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.className = '', 3000);
 }
+
+
+/* ═══════════════════════════════════════════════
+   SNAPSHOT EXPORT / IMPORT
+   Export: serialises allMessages + ban list to JSON.
+   Import: parses that JSON, decrypts with _k, renders
+           without touching Firebase at all — works
+           perfectly through any proxy.
+═══════════════════════════════════════════════ */
+
+// ── Open/close modal helpers ──────────────────
+function _openSnap() { document.getElementById('snapOverlay').classList.remove('hidden'); }
+function _closeSnap() {
+  document.getElementById('snapOverlay').classList.add('hidden');
+  document.getElementById('snapTextarea').value = '';
+  document.getElementById('snapStatus').textContent = '';
+}
+document.getElementById('snapClose').addEventListener('click', _closeSnap);
+document.getElementById('snapOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('snapOverlay')) _closeSnap();
+});
+
+// ── EXPORT: build JSON snapshot from allMessages ──
+document.getElementById('snapExportBtn').addEventListener('click', async () => {
+  if (!allMessages || allMessages.length === 0) {
+    _st('No data loaded — refresh first.');
+    return;
+  }
+
+  // Fetch ban list too so the recipient can see who is banned
+  let banList = {};
+  try {
+    const br = await _fg('_banned');
+    if (br) banList = br;
+  } catch(_) {}
+
+  const snapshot = {
+    v:        1,
+    exported: new Date().toISOString(),
+    messages: allMessages.map(m => ({
+      key:       m.key,
+      room:      m.room,
+      user:      m.user,
+      timestamp: m.timestamp,
+      ciphertext: m.ciphertext,
+      fpId:      m.fpId  || null,
+      fpData:    m.fpData || null,
+    })),
+    banned: banList,
+  };
+
+  const json = JSON.stringify(snapshot, null, 2);
+
+  document.getElementById('snapTitle').textContent   = '📋 Copy Snapshot';
+  document.getElementById('snapDesc').textContent    =
+    'Copy everything below and paste it into "Load Snapshot" on another device or connection.';
+  document.getElementById('snapTextarea').value      = json;
+  document.getElementById('snapTextarea').readOnly   = true;
+  document.getElementById('snapLoadBtn').classList.add('hidden');
+  document.getElementById('snapCopyBtn').classList.remove('hidden');
+  document.getElementById('snapStatus').textContent  =
+    snapshot.messages.length + ' messages · ' + Object.keys(banList).length + ' bans';
+  _openSnap();
+});
+
+// ── Copy to clipboard ─────────────────────────
+document.getElementById('snapCopyBtn').addEventListener('click', async () => {
+  const text = document.getElementById('snapTextarea').value;
+  try {
+    await navigator.clipboard.writeText(text);
+    document.getElementById('snapStatus').textContent = '✓ Copied to clipboard!';
+    document.getElementById('snapStatus').style.color = 'var(--green)';
+  } catch(_) {
+    // Fallback for browsers that block clipboard API
+    document.getElementById('snapTextarea').select();
+    document.execCommand('copy');
+    document.getElementById('snapStatus').textContent = '✓ Selected — press Ctrl+C to copy';
+    document.getElementById('snapStatus').style.color = 'var(--accent)';
+  }
+});
+
+// ── IMPORT: open modal for paste ──────────────
+document.getElementById('snapImportBtn').addEventListener('click', () => {
+  document.getElementById('snapTitle').textContent   = '📥 Load Snapshot';
+  document.getElementById('snapDesc').textContent    =
+    'Paste a snapshot from another session below, then click "Load Data". ' +
+    'This does not affect Firebase — it only loads data for viewing in this session.';
+  document.getElementById('snapTextarea').value      = '';
+  document.getElementById('snapTextarea').readOnly   = false;
+  document.getElementById('snapLoadBtn').classList.remove('hidden');
+  document.getElementById('snapCopyBtn').classList.add('hidden');
+  document.getElementById('snapStatus').textContent  = '';
+  document.getElementById('snapStatus').style.color  = 'var(--accent)';
+  _openSnap();
+  setTimeout(() => document.getElementById('snapTextarea').focus(), 100);
+});
+
+// ── Load pasted snapshot ──────────────────────
+document.getElementById('snapLoadBtn').addEventListener('click', async () => {
+  const raw = document.getElementById('snapTextarea').value.trim();
+  if (!raw) {
+    document.getElementById('snapStatus').textContent = 'Paste a snapshot first.';
+    document.getElementById('snapStatus').style.color = 'var(--red)';
+    return;
+  }
+
+  let snapshot;
+  try {
+    snapshot = JSON.parse(raw);
+  } catch(e) {
+    document.getElementById('snapStatus').textContent = 'Invalid JSON — copy the full snapshot text.';
+    document.getElementById('snapStatus').style.color = 'var(--red)';
+    return;
+  }
+
+  if (!snapshot.v || !Array.isArray(snapshot.messages)) {
+    document.getElementById('snapStatus').textContent = 'Unrecognised snapshot format.';
+    document.getElementById('snapStatus').style.color = 'var(--red)';
+    return;
+  }
+
+  document.getElementById('snapStatus').textContent = 'Decrypting…';
+  document.getElementById('snapStatus').style.color = 'var(--muted)';
+
+  // Decrypt messages using the session key _k
+  let decryptedCount = 0;
+  const total = snapshot.messages.length;
+
+  allMessages = await Promise.all(snapshot.messages.map(async (msg) => {
+    let plaintext = null, failed = false;
+    try {
+      plaintext = await _try(msg.ciphertext, _k);
+      decryptedCount++;
+    } catch(_) {
+      failed = true;
+      plaintext = null;
+    }
+    return { ...msg, plaintext, failed };
+  }));
+
+  // Build stats
+  const roomNames   = [...new Set(allMessages.map(m => m.room))];
+  const uniqueUsers = new Set(allMessages.map(m => m.user));
+  _us(roomNames.length, uniqueUsers.size, total, decryptedCount);
+  _uds(total, total);
+
+  await _rs(roomNames, allMessages);
+  await _rt();
+
+  _closeSnap();
+  _st('Loaded ' + total + ' messages from snapshot (' + decryptedCount + ' decrypted).');
+});
 
 }); // end DOMContentLoaded
 </script>
