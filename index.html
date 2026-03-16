@@ -4,1686 +4,804 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CipherRoom — Admin Dashboard</title>
+<title>CipherRoom — Relay Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- Firebase loaded dynamically at login time via sequential script loader -->
-
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:       #07080f;
-    --surface:  #0d0f1c;
-    --card:     #111425;
-    --card2:    #171b30;
-    --border:   #1e2440;
-    --border2:  #2a3058;
-    --accent:   #e8b84b;
-    --accent2:  #c47f20;
-    --green:    #3ecf8e;
-    --blue:     #4e9ef7;
-    --red:      #e05060;
-    --text:     #dde3f5;
-    --muted:    #5a6490;
-    --muted2:   #3a4470;
-    --mono:     'IBM Plex Mono', monospace;
-    --sans:     'IBM Plex Sans', sans-serif;
-    --display:  'Rajdhani', sans-serif;
-    --radius:   10px;
-  }
+:root {
+  --bg:    #07090f;
+  --card:  #0e1120;
+  --card2: #131728;
+  --border:#1e2440;
+  --text:  #dde6f8;
+  --muted: #5a6490;
+  --mono:  'IBM Plex Mono', monospace;
+  --disp:  'Rajdhani', sans-serif;
+  /* mode colors set by JS */
+  --accent: #3b82f6;
+  --accent2:#1d4ed8;
+  --glow:  rgba(59,130,246,.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
+body::before{
+content:’’;position:fixed;inset:0;pointer-events:none;
+background-image:
+linear-gradient(var(–glow) 1px,transparent 1px),
+linear-gradient(90deg,var(–glow) 1px,transparent 1px);
+background-size:40px 40px;
+transition:background-image .4s;
+}
 
-  
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(232,184,75,.018) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(232,184,75,.018) 1px, transparent 1px);
-    background-size: 36px 36px;
-    pointer-events: none;
-    z-index: 0;
-  }
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
 
-  #app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+/* ── STEP CARDS ── */
+.step-card{
+width:100%;max-width:520px;
+background:var(–card);
+border:1.5px solid var(–accent);
+border-radius:16px;
+padding:32px 28px;
+box-shadow:0 0 60px var(–glow),0 20px 40px rgba(0,0,0,.5);
+animation:fadeUp .35s cubic-bezier(.22,.61,.36,1);
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
-  /* ── Gate screen ── */
-  #gateScreen {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    animation: fadeIn .4s ease;
-  }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+.step-logo{
+font-family:var(–disp);font-size:22px;font-weight:700;
+letter-spacing:.05em;margin-bottom:4px;color:var(–text);
+}
+.step-logo span{color:var(–accent);}
+.step-sub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(–accent);margin-bottom:24px;}
 
-  .gate-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 40px 36px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 0 80px rgba(232,184,75,.05), 0 24px 48px rgba(0,0,0,.6);
-  }
-  .gate-logo {
-    font-family: var(--display);
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    margin-bottom: 4px;
-  }
-  .gate-logo span { color: var(--accent); }
-  .gate-sub {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--accent);
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    margin-bottom: 28px;
-  }
-  .gate-label {
-    display: block;
-    font-size: 11px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-family: var(--mono);
-    margin-bottom: 7px;
-  }
-  .gate-input {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 15px;
-    padding: 12px 14px;
-    outline: none;
-    letter-spacing: .06em;
-    transition: border-color .2s, box-shadow .2s;
-    margin-bottom: 14px;
-  }
-  .gate-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,184,75,.1); }
-  .gate-input.invalid { border-color: var(--red); }
-  .gate-btn {
-    width: 100%;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border: none;
-    border-radius: var(--radius);
-    color: #1a1000;
-    font-family: var(--display);
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: .05em;
-    padding: 13px;
-    cursor: pointer;
-    transition: opacity .18s, transform .18s;
-  }
-  .gate-btn:hover { opacity: .88; transform: translateY(-1px); }
-  .gate-hint { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 10px; }
-  .gate-error { color: var(--red); font-size: 12px; font-family: var(--mono); margin-top: 8px; display: none; }
+.step-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(–muted);margin-bottom:8px;}
 
-  /* ── Dashboard ── */
-  #dashScreen { flex: 1; display: flex; flex-direction: column; animation: fadeIn .3s ease; }
+/* Mode buttons */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;}
+.mode-btn{
+padding:18px 12px;border-radius:12px;border:1.5px solid var(–border);
+background:var(–card2);cursor:pointer;transition:all .2s;
+display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.mode-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.mode-btn.check-btn:hover,.mode-btn.check-btn.selected{border-color:#3b82f6;background:rgba(59,130,246,.12);}
+.mode-btn.send-btn:hover,.mode-btn.send-btn.selected{border-color:#ef4444;background:rgba(239,68,68,.12);}
+.mode-btn .mode-icon{font-size:26px;}
+.mode-btn .mode-name{font-family:var(–disp);font-size:17px;font-weight:700;letter-spacing:.04em;}
+.mode-btn .mode-desc{font-size:10px;color:var(–muted);text-align:center;line-height:1.5;}
+.mode-btn.check-btn .mode-name{color:#3b82f6;}
+.mode-btn.send-btn .mode-name{color:#ef4444;}
 
-  
-  .dash-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 24px;
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .dash-logo { font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: .04em; }
-  .dash-logo span { color: var(--accent); }
-  .dash-logo small { font-size: 13px; color: var(--muted); font-family: var(--mono); font-weight: 400; margin-left: 10px; }
-  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .badge {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 5px 12px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .badge .dot { width: 7px; height: 7px; border-radius: 50%; }
-  .dot-green { background: var(--green); animation: pulse 2s infinite; }
-  .dot-amber { background: var(--accent); }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-  .btn-sm {
-    background: var(--card2);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 8px;
-    font-size: 12px;
-    font-family: var(--mono);
-    padding: 6px 14px;
-    cursor: pointer;
-    transition: all .18s;
-  }
-  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-danger:hover { border-color: var(--red); color: var(--red); }
+/* Inputs */
+.inp{
+width:100%;background:var(–bg);border:1.5px solid var(–border);
+border-radius:10px;color:var(–text);font-family:var(–mono);
+font-size:14px;padding:12px 14px;outline:none;transition:border-color .2s;
+margin-bottom:6px;
+}
+.inp:focus{border-color:var(–accent);}
+.inp.invalid{border-color:#ef4444;}
+.inp-hint{font-size:10px;color:var(–muted);margin-bottom:16px;}
 
-  
-  .stats-row {
-    display: flex;
-    gap: 1px;
-    background: var(--border);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .stat-cell {
-    flex: 1;
-    background: var(--surface);
-    padding: 14px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .stat-value {
-    font-family: var(--display);
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1;
-  }
-  .stat-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
+textarea.inp{resize:vertical;min-height:120px;line-height:1.5;font-size:11px;}
 
-  
-  .dash-body {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
-  }
+/* Buttons */
+.btn-main{
+width:100%;padding:13px;border:none;border-radius:10px;
+font-family:var(–disp);font-size:17px;font-weight:700;letter-spacing:.05em;
+cursor:pointer;transition:all .18s;margin-top:4px;
+background:linear-gradient(135deg,var(–accent),var(–accent2));
+color:#fff;
+}
+.btn-main:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 6px 20px var(–glow);}
+.btn-main:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 
-  
-  .sidebar {
-    width: 240px;
-    min-width: 240px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    flex-shrink: 0;
-  }
-  .sidebar::-webkit-scrollbar { width: 4px; }
-  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-  .sidebar-section-label {
-    padding: 14px 16px 6px;
-    font-size: 10px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-family: var(--mono);
-    border-top: 1px solid var(--border);
-  }
-  .sidebar-section-label:first-child { border-top: none; }
-  .room-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    cursor: pointer;
-    transition: background .15s;
-    border-left: 3px solid transparent;
-  }
-  .room-item:hover { background: var(--card); }
-  .room-item.active { background: var(--card); border-left-color: var(--accent); }
-  .room-item .room-icon { font-size: 14px; }
-  .room-item .room-name {
-    font-size: 13px;
-    font-family: var(--mono);
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .room-item .room-count {
-    font-size: 11px;
-    font-family: var(--mono);
-    color: var(--muted);
-    background: var(--card2);
-    border-radius: 10px;
-    padding: 1px 7px;
-  }
-  .user-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 16px;
-    font-size: 12px;
-    font-family: var(--mono);
-    color: var(--muted);
-  }
-  .user-avatar-sm {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--blue), var(--green));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: #fff;
-    flex-shrink: 0;
-  }
+.btn-sm{
+background:var(–card2);border:1.5px solid var(–border);
+border-radius:8px;color:var(–muted);font-family:var(–mono);
+font-size:11px;padding:7px 14px;cursor:pointer;transition:all .18s;
+}
+.btn-sm:hover{border-color:var(–accent);color:var(–accent);}
 
-  
-  .main-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-  }
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
 
-  .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--card);
-    flex-shrink: 0;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .panel-title {
-    font-family: var(--display);
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: .03em;
-  }
-  .panel-title span { color: var(--accent); }
-  .panel-actions { display: flex; gap: 8px; }
+/* Status / error */
+.status{font-size:11px;min-height:16px;margin-top:6px;color:var(–accent);}
+.status.err{color:#ef4444;}
+.status.ok{color:#22c55e;}
 
-  
-  .filter-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-  }
-  .search-input {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 7px 12px;
-    outline: none;
-    width: 200px;
-    transition: border-color .2s;
-  }
-  .search-input:focus { border-color: var(--accent); }
-  .search-input::placeholder { color: var(--muted); }
-  .filter-label { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+/* ── MAIN PANEL (post-auth) ── */
+#mainPanel{
+width:100%;max-width:900px;
+background:var(–card);
+border:1.5px solid var(–accent);
+border-radius:16px;
+box-shadow:0 0 60px var(–glow),0 20px 40px rgba(0,0,0,.5);
+display:flex;flex-direction:column;
+animation:fadeUp .35s cubic-bezier(.22,.61,.36,1);
+max-height:90vh;overflow:hidden;
+}
 
-  
-  .msg-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0;
-  }
-  .msg-scroll::-webkit-scrollbar { width: 5px; }
-  .msg-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.panel-header{
+display:flex;align-items:center;justify-content:space-between;
+padding:14px 20px;border-bottom:1px solid var(–border);
+flex-shrink:0;flex-wrap:wrap;gap:10px;
+}
+.panel-title{font-family:var(–disp);font-size:19px;font-weight:700;letter-spacing:.04em;}
+.panel-title span{color:var(–accent);}
+.mode-badge{
+padding:4px 12px;border-radius:20px;
+font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+border:1.5px solid var(–accent);color:var(–accent);
+}
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  thead th {
-    position: sticky;
-    top: 0;
-    background: var(--card2);
-    border-bottom: 1px solid var(--border2);
-    padding: 10px 16px;
-    text-align: left;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 500;
-    white-space: nowrap;
-    z-index: 2;
-  }
-  tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background .12s;
-  }
-  tbody tr:hover { background: var(--card); }
-  td {
-    padding: 10px 16px;
-    vertical-align: top;
-    line-height: 1.5;
-  }
-  td.col-time {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    white-space: pre;   
-    width: 150px;
-    line-height: 1.6;
-  }
-  td.col-room {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--blue);
-    white-space: nowrap;
-    width: 130px;
-  }
-  td.col-user {
-    width: 120px;
-    white-space: nowrap;
-  }
-  .user-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--mono);
-    font-size: 12px;
-  }
-  .user-pill .dot-avatar {
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--blue), var(--green));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px;
-    font-weight: 600;
-    color: #fff;
-    flex-shrink: 0;
-  }
-  td.col-msg { word-break: break-word; max-width: 420px; }
-  .msg-text { color: var(--text); }
-  .msg-failed {
-    color: var(--red);
-    font-family: var(--mono);
-    font-size: 12px;
-    font-style: italic;
-  }
-  .enc-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--card2);
-    border: 1px solid var(--border2);
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: .04em;
-  }
-  .decrypting {
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 12px;
-    font-style: italic;
-    animation: blink .8s infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.panel-body{flex:1;overflow-y:auto;padding:20px;}
+.panel-body::-webkit-scrollbar{width:4px;}
+.panel-body::-webkit-scrollbar-thumb{background:var(–border);border-radius:2px;}
 
-  
-  .state-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    padding: 60px 20px;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 13px;
-  }
-  .state-icon { font-size: 36px; }
-  .spinner {
-    width: 28px; height: 28px;
-    border: 2px solid var(--border2);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin .8s linear infinite;
-  }
-  @keyframes spin { to { transform:rotate(360deg); } }
+/* Payload box */
+.payload-box{
+background:var(–bg);border:1.5px solid var(–border);
+border-radius:10px;padding:14px;
+font-size:10px;line-height:1.6;word-break:break-all;
+max-height:200px;overflow-y:auto;color:var(–muted);
+margin-bottom:12px;
+}
 
-  
-  #toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--card2);
-    border: 1px solid var(--border2);
-    color: var(--text);
-    font-size: 13px;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-family: var(--mono);
-    transition: transform .3s cubic-bezier(.22,.61,.36,1), opacity .3s;
-    opacity: 0;
-    z-index: 100;
-    pointer-events: none;
-  }
-  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+/* Action cards */
+.action-card{
+background:var(–card2);border:1px solid var(–border);
+border-radius:10px;padding:14px 16px;margin-bottom:10px;
+}
+.action-card.pending{border-color:#f59e0b;}
+.action-card.done{border-color:#22c55e;opacity:.7;}
+.action-card.failed{border-color:#ef4444;}
+.action-label{font-size:11px;color:var(–muted);margin-bottom:4px;}
+.action-value{font-size:12px;color:var(–text);word-break:break-all;}
+.action-status{font-size:10px;margin-top:6px;}
 
-  
-  .btn-del {
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--muted2);
-    border-radius: 6px;
-    font-size: 13px;
-    padding: 3px 7px;
-    cursor: pointer;
-    transition: all .15s;
-    line-height: 1;
-    font-family: var(--mono);
-  }
-  .btn-del:hover { border-color: var(--red); color: var(--red); background: rgba(224,80,96,.08); }
+/* Message rows in send mode */
+.msg-row{
+display:flex;align-items:flex-start;gap:10px;
+padding:10px 0;border-bottom:1px solid var(–border);
+}
+.msg-row:last-child{border-bottom:none;}
+.msg-meta{flex-shrink:0;width:120px;}
+.msg-user{font-size:12px;color:var(–text);}
+.msg-time{font-size:10px;color:var(–muted);}
+.msg-room{font-size:10px;color:#3b82f6;}
+.msg-body{flex:1;font-size:12px;line-height:1.5;}
+.msg-body.failed{color:var(–muted);font-style:italic;}
+.msg-actions{display:flex;gap:6px;flex-shrink:0;}
+.btn-del-msg{
+background:rgba(239,68,68,.12);border:1px solid #ef4444;
+color:#ef4444;border-radius:6px;font-family:var(–mono);
+font-size:10px;padding:3px 8px;cursor:pointer;transition:all .15s;
+}
+.btn-del-msg:hover{background:rgba(239,68,68,.25);}
+.btn-ban-fp{
+background:rgba(245,158,11,.12);border:1px solid #f59e0b;
+color:#f59e0b;border-radius:6px;font-family:var(–mono);
+font-size:10px;padding:3px 8px;cursor:pointer;transition:all .15s;
+}
+.btn-ban-fp:hover{background:rgba(245,158,11,.25);}
 
-  .btn-del-room {
-    opacity: 0;
-    transition: opacity .15s, color .15s, border-color .15s;
-    margin-left: auto;
-    font-size: 11px;
-    padding: 2px 6px;
-  }
-  .room-item:hover .btn-del-room { opacity: 1; }
+.empty-state{
+text-align:center;padding:40px 20px;
+color:var(–muted);font-size:13px;
+}
 
-  td.col-del { width: 36px; text-align: center; padding: 6px 4px; }
-  tbody tr:hover .btn-del { color: var(--muted); border-color: var(--border2); }
+.hidden{display:none!important;}
 
-  
-  #confirmOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.65);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-    animation: fadeIn .15s ease;
-  }
-  .confirm-card {
-    background: var(--card);
-    border: 1px solid var(--border2);
-    border-radius: 14px;
-    padding: 28px 28px 22px;
-    width: 100%;
-    max-width: 360px;
-    box-shadow: 0 24px 48px rgba(0,0,0,.6);
-  }
-  .confirm-title {
-    font-family: var(--display);
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: var(--red);
-  }
-  .confirm-body {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-bottom: 20px;
-    font-family: var(--mono);
-  }
-  .confirm-body strong { color: var(--text); }
-  .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
-  .btn-cancel {
-    background: var(--card2);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 8px;
-    font-size: 13px;
-    font-family: var(--mono);
-    padding: 8px 16px;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .btn-cancel:hover { border-color: var(--border2); color: var(--text); }
-  .btn-confirm-del {
-    background: var(--red);
-    border: none;
-    color: #fff;
-    border-radius: 8px;
-    font-size: 13px;
-    font-family: var(--mono);
-    font-weight: 600;
-    padding: 8px 18px;
-    cursor: pointer;
-    transition: opacity .15s;
-  }
-  .btn-confirm-del:hover { opacity: .85; }
-  .btn-confirm-del:disabled { opacity: .5; cursor: not-allowed; }
-
-
-  /* Fingerprint drawer */
-  .fp-btn {
-    background: var(--card2);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 10px;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: all .15s;
-    white-space: nowrap;
-  }
-  .fp-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .fp-btn.flagged { border-color: var(--red); color: var(--red); }
-  .fp-drawer {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-top: 6px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    display: grid;
-    grid-template-columns: 80px 1fr;
-    gap: 3px 10px;
-    max-width: 420px;
-  }
-  .fp-drawer .fp-key { color: var(--accent2); }
-  .fp-drawer .fp-val { color: var(--text); word-break: break-all; }
-  .fp-drawer .fp-val.hidden-val { color: var(--muted2); font-style: italic; }
-  .fp-id-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--card2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 2px 7px;
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--blue);
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .fp-id-badge:hover { border-color: var(--blue); }
-  .fp-id-badge.flagged { border-color: var(--red); color: var(--red); background: rgba(224,80,96,.08); }
-  td.col-fp { width: 44px; text-align: center; padding: 6px 4px; }
-  .btn-ban {
-    background: rgba(224,80,96,.15);
-    border: 1px solid var(--red);
-    color: var(--red);
-    border-radius: 6px;
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: all .15s;
-    margin-top: 8px;
-  }
-  .btn-ban:hover { background: rgba(224,80,96,.3); }
-  .btn-unban {
-    background: rgba(62,207,142,.15);
-    border: 1px solid var(--green);
-    color: var(--green);
-    border-radius: 6px;
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: all .15s;
-    margin-top: 8px;
-  }
-  .btn-unban:hover { background: rgba(62,207,142,.3); }
-
-
-  /* Snapshot import/export modal */
-  #snapOverlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.75);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200; padding: 20px;
-  }
-  .snap-card {
-    background: var(--card);
-    border: 1px solid var(--border2);
-    border-radius: 14px;
-    padding: 24px;
-    width: 100%; max-width: 680px;
-    box-shadow: 0 24px 64px rgba(0,0,0,.6);
-    display: flex; flex-direction: column; gap: 14px;
-  }
-  .snap-title {
-    font-family: var(--display);
-    font-size: 20px; font-weight: 700;
-    letter-spacing: .03em; color: var(--text);
-  }
-  .snap-desc {
-    font-family: var(--mono); font-size: 11px;
-    color: var(--muted); line-height: 1.6;
-  }
-  .snap-textarea {
-    width: 100%; height: 200px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: var(--mono); font-size: 11px;
-    padding: 10px; resize: vertical;
-    outline: none; line-height: 1.5;
-    transition: border-color .2s;
-  }
-  .snap-textarea:focus { border-color: var(--accent); }
-  .snap-actions {
-    display: flex; gap: 8px; flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .btn-snap-copy {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border: none; border-radius: 8px;
-    color: #fff; font-family: var(--display);
-    font-size: 14px; font-weight: 600;
-    padding: 9px 18px; cursor: pointer;
-    transition: opacity .18s;
-  }
-  .btn-snap-copy:hover { opacity: .85; }
-  .btn-snap-load {
-    background: var(--card2);
-    border: 1px solid var(--accent);
-    border-radius: 8px; color: var(--accent);
-    font-family: var(--mono); font-size: 12px;
-    padding: 9px 18px; cursor: pointer;
-    transition: all .18s;
-  }
-  .btn-snap-load:hover { background: rgba(0,200,168,.1); }
-  .btn-snap-close {
-    background: var(--card2);
-    border: 1px solid var(--border);
-    border-radius: 8px; color: var(--muted);
-    font-family: var(--mono); font-size: 12px;
-    padding: 9px 18px; cursor: pointer;
-    transition: all .18s;
-  }
-  .btn-snap-close:hover { border-color: var(--red); color: var(--red); }
-  .snap-status {
-    font-family: var(--mono); font-size: 11px;
-    min-height: 16px; color: var(--accent);
-  }
-
-  .hidden { display: none !important; }
-
-  @media (max-width: 680px) {
-    .sidebar { width: 180px; min-width: 180px; }
-    .search-input { width: 140px; }
-    td.col-msg { max-width: 200px; }
-  }
+/* Spinner */
+.spinner{
+width:24px;height:24px;border:2px solid var(–border);
+border-top-color:var(–accent);border-radius:50%;
+animation:spin .7s linear infinite;display:inline-block;
+vertical-align:middle;margin-right:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
 </head>
 <body>
 <div id="app">
 
-  <!-- ═══════════ GATE SCREEN ═══════════ -->
+  <!-- ═══ STEP 1: MODE SELECT ═══ -->
 
-  <div id="gateScreen">
-    <div class="gate-card">
-      <div class="gate-logo">Cipher<span>Room</span></div>
-      <div class="gate-sub">Admin Dashboard</div>
+  <div class="step-card" id="stepMode">
+    <div class="step-logo">Cipher<span>Room</span></div>
+    <div class="step-sub">Relay Admin · Offline-Ready</div>
+    <div class="step-label">Select mode</div>
+    <div class="mode-grid">
+      <button class="mode-btn check-btn" id="btnCheck">
+        <span class="mode-icon">📋</span>
+        <span class="mode-name">CHECK</span>
+        <span class="mode-desc">Fetch data from Firebase and copy it for offline use</span>
+      </button>
+      <button class="mode-btn send-btn" id="btnSend">
+        <span class="mode-icon">📡</span>
+        <span class="mode-name">SEND</span>
+        <span class="mode-desc">Paste copied data and push actions to Firebase</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: PASSWORD ═══ -->
+
+  <div class="step-card hidden" id="stepPass">
+    <div class="step-logo">Cipher<span>Room</span></div>
+    <div class="step-sub" id="passModeSub">CHECK MODE</div>
+    <div class="step-label">Admin password</div>
+    <input class="inp" id="passInput" type="password" placeholder="Enter admin password" maxlength="32" autocomplete="off"/>
+    <div class="status" id="passStatus"></div>
+    <button class="btn-main" id="passBtn">Continue →</button>
+    <div class="btn-row">
+      <button class="btn-sm" id="passBack">← Back</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3 CHECK: FETCH + COPY ═══ -->
+
+  <div class="hidden" id="stepCheck">
+    <div class="step-card" style="max-width:600px;">
+      <div class="step-logo">Cipher<span>Room</span> <span style="font-size:14px;color:#3b82f6;font-family:var(--mono)">CHECK</span></div>
+      <div class="step-sub" style="color:#3b82f6;">Fetch · Encode · Copy</div>
 
 ```
-  <label class="gate-label" for="gatePass">Admin passphrase</label>
-  <input class="gate-input" id="gatePass" type="password"
-         placeholder="Enter admin passphrase" maxlength="32" autocomplete="off"/>
-  <button class="gate-btn" id="gateBtn">Access Dashboard →</button>
-  <div class="gate-hint">Enter your passphrase to verify access.</div>
-  <div class="gate-error" id="gateError">Incorrect passphrase — access denied.</div>
+  <div class="step-label">Status</div>
+  <div class="status" id="checkStatus">Ready to fetch…</div>
+
+  <div class="btn-row" style="margin-top:16px;">
+    <button class="btn-main" id="fetchBtn" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">
+      ↓ Fetch from Firebase
+    </button>
+  </div>
+
+  <div id="checkPayloadSection" class="hidden" style="margin-top:16px;">
+    <div class="step-label">Encoded payload — copy everything below</div>
+    <div class="payload-box" id="checkPayload"></div>
+    <div class="btn-row">
+      <button class="btn-main" id="copyPayloadBtn" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">📋 Copy to Clipboard</button>
+      <button class="btn-sm" id="fetchAgainBtn">↻ Re-fetch</button>
+    </div>
+    <div class="status" id="copyStatus"></div>
+  </div>
+
+  <div class="btn-row" style="margin-top:12px;">
+    <button class="btn-sm" id="checkLogout">← Logout</button>
+  </div>
 </div>
 ```
 
   </div>
 
-  <!-- ═══════════ DASHBOARD ═══════════ -->
+  <!-- ═══ STEP 3 SEND: PASTE + ACT ═══ -->
 
-  <div id="dashScreen" class="hidden">
+  <div class="hidden" id="stepSend">
+    <div id="sendIntro">
+      <div class="step-card" style="max-width:600px;">
+        <div class="step-logo">Cipher<span>Room</span> <span style="font-size:14px;color:#ef4444;font-family:var(--mono)">SEND</span></div>
+        <div class="step-sub" style="color:#ef4444;">Paste · Decrypt · Act</div>
 
 ```
-<header class="dash-header">
-  <div>
-    <div class="dash-logo">Cipher<span>Room</span> <small>/ Admin</small></div>
-  </div>
-  <div class="header-right">
-    <div class="badge"><div class="dot dot-green"></div><span id="liveLabel">Live</span></div>
-    <button class="btn-sm" id="refreshBtn">↻ Refresh</button>
-    <button class="btn-sm" id="snapExportBtn">📋 Copy Snapshot</button>
-    <button class="btn-sm" id="snapImportBtn">📥 Load Snapshot</button>
-    <button class="btn-sm" id="exportBtn">⬇ Export CSV</button>
-    <button class="btn-sm btn-danger" id="logoutBtn">Logout</button>
-  </div>
-</header>
+    <div class="step-label">Paste encoded payload</div>
+    <textarea class="inp" id="pasteInput" placeholder="Paste the payload copied from CHECK mode here…"></textarea>
+    <div class="status" id="pasteStatus"></div>
 
-<!-- Stats -->
-<div class="stats-row">
-  <div class="stat-cell">
-    <div class="stat-value" id="statRooms">—</div>
-    <div class="stat-label">Rooms</div>
-  </div>
-  <div class="stat-cell">
-    <div class="stat-value" id="statUsers">—</div>
-    <div class="stat-label">Unique Users</div>
-  </div>
-  <div class="stat-cell">
-    <div class="stat-value" id="statMessages">—</div>
-    <div class="stat-label">Total Messages</div>
-  </div>
-  <div class="stat-cell">
-    <div class="stat-value" id="statDecrypted">—</div>
-    <div class="stat-label">Decrypted</div>
+    <button class="btn-main" id="loadPayloadBtn" style="background:linear-gradient(135deg,#ef4444,#b91c1c);">Load Data →</button>
+
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn-sm" id="sendLogout">← Logout</button>
+    </div>
   </div>
 </div>
 
-<!-- Body -->
-<div class="dash-body">
+<!-- Loaded data panel -->
+<div id="mainPanel" class="hidden">
+  <div class="panel-header">
+    <div class="panel-title">Cipher<span>Room</span></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="mode-badge" style="border-color:#ef4444;color:#ef4444;">SEND MODE</div>
+      <span id="panelStats" style="font-size:11px;color:var(--muted);"></span>
+      <button class="btn-sm" id="panelLogout">← Logout</button>
+    </div>
+  </div>
 
-  <!-- Sidebar -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-section-label">Rooms</div>
-    <div id="roomList"><div class="user-item">Loading…</div></div>
-    <div class="sidebar-section-label">All Users</div>
-    <div id="userList"><div class="user-item">Loading…</div></div>
-  </nav>
-
-  <!-- Main panel -->
-  <div class="main-panel">
-    <div class="panel-header">
-      <div class="panel-title" id="panelTitle">All Messages</div>
-      <div class="panel-actions">
-        <span id="decryptStatus" style="font-size:12px;font-family:var(--mono);color:var(--muted);"></span>
+  <!-- Pending actions -->
+  <div class="panel-body">
+    <div id="pendingSection" class="hidden">
+      <div class="step-label" style="margin-bottom:10px;">⚡ Pending Actions</div>
+      <div id="pendingList"></div>
+      <div class="btn-row" style="margin-bottom:20px;">
+        <button class="btn-main" id="executeBtn" style="background:linear-gradient(135deg,#ef4444,#b91c1c);">
+          Execute All Actions →
+        </button>
+        <button class="btn-sm" id="clearActionsBtn">Clear</button>
       </div>
     </div>
 
-    <div class="filter-bar">
-      <span class="filter-label">Filter:</span>
-      <input class="search-input" id="searchInput" type="text" placeholder="Search messages or users…"/>
-    </div>
-
-    <div class="msg-scroll" id="msgScroll">
-      <div class="state-box" id="loadingState">
-        <div class="spinner"></div>
-        <span>Loading messages…</span>
-      </div>
-      <table id="msgTable" class="hidden">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Room</th>
-            <th>User</th>
-            <th>Message</th>
-            <th>Info</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="msgBody"></tbody>
-      </table>
-      <div class="state-box hidden" id="emptyState">
-        <div class="state-icon">💬</div>
-        <span>No messages found.</span>
-      </div>
-    </div>
+    <div class="step-label" style="margin-bottom:10px;">Messages</div>
+    <div id="msgList"><div class="empty-state">No messages loaded.</div></div>
   </div>
 </div>
 ```
 
   </div>
-</div>
 
-<div id="toast"></div>
-
-<!-- Snapshot export/import modal -->
-
-<div id="snapOverlay" class="hidden">
-  <div class="snap-card">
-    <div class="snap-title" id="snapTitle">Snapshot</div>
-    <div class="snap-desc" id="snapDesc"></div>
-    <textarea class="snap-textarea" id="snapTextarea" spellcheck="false"></textarea>
-    <div class="snap-status" id="snapStatus"></div>
-    <div class="snap-actions">
-      <button class="btn-snap-close" id="snapClose">Close</button>
-      <button class="btn-snap-load hidden" id="snapLoadBtn">Load Data →</button>
-      <button class="btn-snap-copy hidden" id="snapCopyBtn">Copy to Clipboard</button>
-    </div>
-  </div>
-</div>
-
-<!-- Confirm delete modal -->
-
-<div id="confirmOverlay" class="hidden">
-  <div class="confirm-card">
-    <div class="confirm-title" id="confirmTitle">Delete?</div>
-    <div class="confirm-body" id="confirmBody"></div>
-    <div class="confirm-actions">
-      <button class="btn-cancel" id="confirmCancel">Cancel</button>
-      <button class="btn-confirm-del" id="confirmOk">Delete</button>
-    </div>
-  </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════
-   FIREBASE CONFIG  (same project as main chat)
-═══════════════════════════════════════════════ */
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyDoibf9MS1LB6ZY6kAMh-sKrJOVspvA-hA",
-  authDomain:        "cipherroom-d08de.firebaseapp.com",
-  databaseURL:       "https://cipherroom-d08de-default-rtdb.firebaseio.com",
-  projectId:         "cipherroom-d08de",
-  storageBucket:     "cipherroom-d08de.firebasestorage.app",
-  messagingSenderId: "146721483194",
-  appId:             "1:146721483194:web:f0a37809a3b557d1501583"
+// ── Firebase config ───────────────────────────────────────────────────────
+const _FC = {
+  databaseURL: 'https://cipherroom-d08de-default-rtdb.firebaseio.com'
 };
 
-// internal state
-let _k = null;  // active key material — set only after live verification
+// ── Auth config ───────────────────────────────────────────────────────────
+const _d1 = 'JonWeeks46';
+const _d2 = btoa('Adm1nK3y!x');
+const _d3 = 'Sup3rS3cr3t!';
+const _p1 = 'UmVucmFX';
+const _p2 = 'ZGVyRg==';
+const _rk = (()=>{ try{ return atob(_p1+_p2).split('').reverse().join(''); }catch(_){return '';} })();
 
-// core decode primitives — intentionally unlabelled
+// ── Safe URL helper — avoids .replace() which Rammerhead breaks ───────────
+function _safeUrl(url) {
+  let u = String(url);
+  while (u.length > 0 && u[u.length - 1] === '/') u = u.slice(0, -1);
+  return u;
+}
+const _BASE = _safeUrl(_FC.databaseURL);
+
+// ── Crypto (AES-256-GCM) ─────────────────────────────────────────────────
 function _b2a(b){const n=atob(b),a=new Uint8Array(n.length);for(let i=0;i<n.length;i++)a[i]=n.charCodeAt(i);return a.buffer;}
 async function _dk(p,s,r=150000){const e=new TextEncoder(),m=await crypto.subtle.importKey('raw',e.encode(p),{name:'PBKDF2'},false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:r,hash:'SHA-256'},m,{name:'AES-GCM',length:256},true,['encrypt','decrypt']);}
 async function _dp(v,p){const t=v.split(':');if(t[0]!=='AESGCM'||t[1]!=='PBKDF2'||t.length<5)throw 0;const k=await _dk(p,_b2a(t[2])),x=await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(_b2a(t[3])),tagLength:128},k,_b2a(t.slice(4).join(':')));return new TextDecoder().decode(x);}
-
-// attempt to decode a raw ciphertext string with the given key
-async function _try(raw, key) {
+async function _tryDecrypt(raw, key) {
+  if (!key) throw new Error('no_key');
   const s = (raw.startsWith('L2AES:') ? raw.slice(6) : raw).split(':::').map(x=>x.trim()).filter(Boolean);
   for (const p of s) { try { return await _dp(p, key); } catch(_){} }
-  throw new Error('x');
+  throw new Error('failed');
 }
 
-// state
-let allMessages = [], activeRoom = null, searchQuery = '';
-
-document.addEventListener('DOMContentLoaded', function () {
-
-const gateScreen  = document.getElementById('gateScreen');
-const dashScreen  = document.getElementById('dashScreen');
-const gatePassEl  = document.getElementById('gatePass');
-const gateBtnEl   = document.getElementById('gateBtn');
-const gateErrorEl = document.getElementById('gateError');
-
-gateBtnEl.addEventListener('click', attemptGate);
-gatePassEl.addEventListener('keydown', e => { if (e.key === 'Enter') attemptGate(); });
-
-// Verify by actually decrypting a real message — no hardcoded password anywhere
-async function attemptGate() {
-  const val = gatePassEl.value;
-  if (!val) return;
-
-  gateBtnEl.disabled = true;
-  gateBtnEl.textContent = 'Verifying…';
-  gateErrorEl.style.display = 'none';
-  gatePassEl.classList.remove('invalid');
-
-  try {
-      const base = DB_URL.replace(/\/+$/, '');
-    let res = await fetch(`${base}/rooms.json`, { mode:'cors', headers:{'Accept':'application/json'} });
-    if (!res.ok) throw new Error('fetch_fail');
-    const rooms = await res.json();
-
-    if (!rooms) {
-          gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
-      gateErrorEl.style.display = 'block';
-      gateBtnEl.disabled = false;
-      gateBtnEl.textContent = 'Access Dashboard →';
-      return;
-    }
-
-      const samples = [];
-    outer: for (const room of Object.values(rooms)) {
-      if (!room.messages) continue;
-      for (const msg of Object.values(room.messages)) {
-        if (msg.ciphertext) { samples.push(msg.ciphertext); }
-        if (samples.length >= 5) break outer;
-      }
-    }
-
-    if (samples.length === 0) {
-      gateErrorEl.textContent = 'No messages exist yet. Cannot verify.';
-      gateErrorEl.style.display = 'block';
-      gateBtnEl.disabled = false;
-      gateBtnEl.textContent = 'Access Dashboard →';
-      return;
-    }
-
-      // independently encrypted slots; we try each slot with the provided key.
-      let verified = false;
-    for (const ct of samples) {
-      try { await _try(ct, val); verified = true; break; } catch(_) {}
-    }
-
-    if (!verified) {
-      gatePassEl.classList.add('invalid');
-      gateErrorEl.textContent = 'Access denied.';
-      gateErrorEl.style.display = 'block';
-      gatePassEl.value = '';
-      gateBtnEl.disabled = false;
-      gateBtnEl.textContent = 'Access Dashboard →';
-      return;
-    }
-
-      _k = val;
-    gateScreen.classList.add('hidden');
-    dashScreen.classList.remove('hidden');
-    _ifl();
-
-  } catch(e) {
-    gateErrorEl.textContent = e.message === 'fetch_fail'
-      ? 'Could not reach database — check connection.'
-      : 'Verification error.';
-    gateErrorEl.style.display = 'block';
-    gateBtnEl.disabled = false;
-    gateBtnEl.textContent = 'Access Dashboard →';
-  }
+// ── Firebase fetch helpers (no .replace() anywhere) ──────────────────────
+async function _fbGet(path) {
+  const url = _BASE + '/' + path + '.json';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const raw = await res.text();
+  if (!raw || raw === 'null') return null;
+  return JSON.parse(raw);
 }
 
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  _k = null;
-  allMessages = [];
-  activeRoom  = null;
-  dashScreen.classList.add('hidden');
-  gateScreen.classList.remove('hidden');
-  gatePassEl.value = '';
-  gatePassEl.classList.remove('invalid');
-  gateErrorEl.style.display = 'none';
-  gateErrorEl.textContent = 'Access denied.';
-  gateBtnEl.disabled = false;
-  gateBtnEl.textContent = 'Access Dashboard →';
-});
-
-/* ═══════════════════════════════════════════════
-   FIREBASE REST API  — zero SDK, zero CDN
-   Uses plain fetch() against the Realtime Database
-   REST endpoint. Works everywhere, always.
-═══════════════════════════════════════════════ */
-const DB_URL = FIREBASE_CONFIG.databaseURL;
-
-async function _fg(p) {
-  const base=DB_URL.replace(/\/+$/,'');const url=`${base}/${p}.json`;
-
-  let res;
-  try {
-    res = await fetch(url, {
-      method:  'GET',
-      mode:    'cors',
-      headers: { 'Accept': 'application/json' }
-    });
-  } catch (networkErr) {
-      throw new Error(
-      `Network error reaching Firebase — is the database URL correct? (${networkErr.message})`
-    );
-  }
-
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 403)
-      throw new Error(`Permission denied (${res.status}) — check Firebase Rules allow .read on rooms`);
-    throw new Error(`Firebase REST error ${res.status}: ${res.statusText}`);
-  }
-  return res.json();
+async function _fbDelete(path) {
+  const url = _BASE + '/' + path + '.json';
+  const res = await fetch(url, {method:'DELETE', headers:{'Accept':'application/json'}});
+  if (!res.ok) throw new Error('DELETE ' + res.status);
 }
 
-function _ifl() {
-  if (!DB_URL || !DB_URL.startsWith('https://')) {
-    _st('Invalid Firebase databaseURL in config — check FIREBASE_CONFIG.databaseURL');
-    console.error('DB_URL:', DB_URL);
-    return;
-  }
-  _lad();
-}
-
-async function _lad() {
-  _sls();
-  allMessages = [];
-
-  try {
-    const roomsData = await _fg('rooms');
-
-    if (!roomsData) {
-      _us(0,0,0,0);
-      await _rs([]);
-      _ses();
-      return;
-    }
-
-    const roomNames = Object.keys(roomsData);
-    let rawMessages = [];
-
-      for (const roomName of roomNames) {
-      const msgs = roomsData[roomName].messages;
-      if (!msgs) continue;
-      for (const [key, val] of Object.entries(msgs)) {
-        rawMessages.push({
-          key,
-          room:       roomName,
-          user:       val.user || 'Unknown',
-          timestamp:  val.timestamp || 0,
-          ciphertext: val.ciphertext || '',
-          fpId:       val._f  || null,
-          fpData:     val._fc || null
-        });
-      }
-    }
-
-      rawMessages.sort((a, b) => a.timestamp - b.timestamp);
-
-      let decryptedCount = 0;
-    const total = rawMessages.length;
-    _uds(0, total);
-
-    allMessages = await Promise.all(rawMessages.map(async (msg, i) => {
-      let plaintext = null;
-      let failed    = false;
-      try {
-        plaintext = await _try(msg.ciphertext, _k);
-        decryptedCount++;
-      } catch (_) {
-        failed    = true;
-        plaintext = null;
-      }
-      if (i % 10 === 0) _uds(Math.min(i + 10, total), total);
-      return { ...msg, plaintext, failed, fpId: msg.fpId, fpData: msg.fpData };
-    }));
-
-    _uds(total, total);
-
-      const uniqueUsers = new Set(allMessages.map(m => m.user));
-    _us(roomNames.length, uniqueUsers.size, total, decryptedCount);
-
-    await _rs(roomNames, allMessages);
-    await _rt();
-
-  } catch (e) {
-    console.error('Load error:', e);
-      _st('Load failed: ' + (e.message || String(e)));
-    _ses();
-  }
-}
-
-async function _rs(roomNames, messages = []) {
-  const roomList = document.getElementById('roomList');
-  const userList = document.getElementById('userList');
-
-  roomList.innerHTML = '';
-
-  // "All" option
-  const allItem = document.createElement('div');
-  allItem.className = 'room-item' + (activeRoom === null ? ' active' : '');
-  allItem.innerHTML = `
-    <span class="room-icon">#</span>
-    <span class="room-name">All Rooms</span>
-    <span class="room-count">${messages.length}</span>
-  `;
-  allItem.addEventListener('click', async () => { await _sel(null,allItem); });
-  roomList.appendChild(allItem);
-
-  for (const name of roomNames) {
-    const count = messages.filter(m => m.room === name).length;
-    const item  = document.createElement('div');
-    item.className = 'room-item' + (activeRoom === name ? ' active' : '');
-    item.innerHTML = `
-      <span class="room-icon">🔒</span>
-      <span class="room-name">${_eh(name)}</span>
-      <span class="room-count">${count}</span>
-      <button class="btn-del btn-del-room" title="Delete room">✕</button>
-    `;
-    item.querySelector('.btn-del-room').addEventListener('click', async (e) => {
-      e.stopPropagation();
-      await _dr(name);
-    });
-    item.addEventListener('click', async () => { await _sel(name,item); });
-    roomList.appendChild(item);
-  }
-
-  userList.innerHTML = '';
-  const uniqueUsers = [...new Set(messages.map(m => m.user))].sort();
-  if (uniqueUsers.length === 0) {
-    userList.innerHTML = '<div class="user-item">No users yet</div>';
-  } else {
-    for (const user of uniqueUsers) {
-      const div = document.createElement('div');
-      div.className = 'user-item';
-      div.innerHTML = `
-        <div class="user-avatar-sm">${_eh(user[0].toUpperCase())}</div>
-        <span>${_eh(user)}</span>
-      `;
-      userList.appendChild(div);
-    }
-  }
-}
-
-async function _sel(name,itemEl) {
-  activeRoom = name;
-  document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
-  itemEl.classList.add('active');
-  const titleEl = document.getElementById('panelTitle');
-  titleEl.innerHTML = name
-    ? `Room: <span>#${_eh(name)}</span>`
-    : 'All Messages';
-  await _rt();
-}
-
-async function _rt() {
-  const tbody      = document.getElementById('msgBody');
-  const table      = document.getElementById('msgTable');
-  const emptyState = document.getElementById('emptyState');
-  const loadState  = document.getElementById('loadingState');
-
-  loadState.classList.add('hidden');
-
-  let rows = allMessages;
-
-  if (activeRoom !== null) {
-    rows = rows.filter(m => m.room === activeRoom);
-  }
-
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    rows = rows.filter(m =>
-      m.user.toLowerCase().includes(q) ||
-      (!m.failed && m.plaintext.toLowerCase().includes(q)) ||
-      m.room.toLowerCase().includes(q)
-    );
-  }
-
-  tbody.innerHTML = '';
-
-  if (rows.length === 0) {
-    table.classList.add('hidden');
-    emptyState.classList.remove('hidden');
-    return;
-  }
-
-  table.classList.remove('hidden');
-  emptyState.classList.add('hidden');
-
-  // Build a map of fpId → message count to flag high-volume fingerprints
-  const fpCounts = {};
-  for (const m of allMessages) {
-    if (m.fpId && m.fpId !== 'hidden') fpCounts[m.fpId] = (fpCounts[m.fpId] || 0) + 1;
-  }
-  const SPAM_THRESHOLD = 15; // flag fingerprints with 15+ messages
-
-  const frag = document.createDocumentFragment();
-  for (const msg of rows) {
-    const tr = document.createElement('tr');
-    const isHidden = !msg.fpId || msg.fpId === 'hidden';
-    const isFlagged = !isHidden && (fpCounts[msg.fpId] || 0) >= SPAM_THRESHOLD;
-
-    tr.innerHTML = `
-      <td class="col-time">${_fdt(msg.timestamp)}</td>
-      <td class="col-room">#${_eh(msg.room)}</td>
-      <td class="col-user">
-        <div class="user-pill">
-          <div class="dot-avatar">${_eh(msg.user[0].toUpperCase())}</div>
-          ${_eh(msg.user)}
-        </div>
-      </td>
-      <td class="col-msg">
-        ${msg.failed
-          ? `<span class="enc-chip">&#x2713; Encrypted</span>`
-          : `<span class="msg-text">${_eh(msg.plaintext)}</span>`}
-      </td>
-      <td class="col-fp">
-        ${isHidden
-          ? `<span class="fp-id-badge" title="Fingerprint hidden (Secure room)">&#x1F512;</span>`
-          : `<span class="fp-id-badge ${isFlagged ? 'flagged' : ''}" data-fpid="${_eh(msg.fpId)}"
-               title="Click to view device info${isFlagged ? ' ⚠ High volume' : ''}">
-               ${isFlagged ? '⚠' : '🔍'} ${_eh(msg.fpId.slice(0,6))}
-             </span>`}
-      </td>
-      <td class="col-del"><button class="btn-del" title="Delete message">✕</button></td>
-    `;
-
-    // Fingerprint badge click → toggle drawer
-    const badge = tr.querySelector('.fp-id-badge[data-fpid]');
-    if (badge) {
-      badge.addEventListener('click', async () => {
-        const existing = tr.querySelector('.fp-drawer');
-        if (existing) { existing.remove(); return; }
-        const fd = msg.fpData || {};
-        const count = fpCounts[msg.fpId] || 1;
-        const drawer = document.createElement('td');
-        drawer.colSpan = 6;
-        drawer.style.padding = '0 16px 10px';
-        const fields = [
-          ['ID',       msg.fpId],
-          ['Messages', count + (count >= SPAM_THRESHOLD ? ' ⚠ HIGH VOLUME' : '')],
-          ['Screen',   fd.sc || '—'],
-          ['Timezone', fd.tz || '—'],
-          ['Language', fd.la || '—'],
-          ['Platform', fd.pl || '—'],
-          ['GPU',      fd.gl || '—'],
-          ['Browser',  fd.ua || '—'],
-          ['Canvas',   fd.cv || '—'],
-          ['Color',    fd.cd + '-bit' || '—'],
-        ];
-        drawer.innerHTML = `<div class="fp-drawer">${
-          fields.map(([k,v]) => {
-            const hidden = v === 'Hidden' || v === '—';
-            return `<span class="fp-key">${k}</span><span class="fp-val${hidden?' hidden-val':''}">${_eh(String(v))}</span>`;
-          }).join('')
-        }</div>`;
-        // Add ban/unban button
-        const bannedRes = await fetch(`${DB_URL}/_banned/${msg.fpId}.json`).then(r=>r.json()).catch(()=>null);
-        const isBanned = bannedRes === true;
-        const banBtn = document.createElement('button');
-        banBtn.className = isBanned ? 'btn-unban' : 'btn-ban';
-        banBtn.textContent = isBanned ? '✓ Unban this device' : '⊘ Ban this device';
-        banBtn.addEventListener('click', async () => {
-          const confirmed = await _sc(
-            isBanned ? 'Unban Device' : 'Ban Device',
-            isBanned
-              ? `Allow fingerprint <strong>${_eh(msg.fpId)}</strong> to send messages again?`
-              : `Block all messages from fingerprint <strong>${_eh(msg.fpId)}</strong>?<br><br>They will see "Your device is not allowed" when they try to send.`
-          );
-          if (!confirmed) return;
-          try {
-            if (isBanned) {
-              await _fd(`_banned/${msg.fpId}`);
-              banBtn.className = 'btn-ban';
-              banBtn.textContent = '⊘ Ban this device';
-              _st('Device unbanned.');
-            } else {
-              await _fput(`_banned/${msg.fpId}`, true);
-              banBtn.className = 'btn-unban';
-              banBtn.textContent = '✓ Unban this device';
-              _st('Device banned — they can no longer send messages.');
-            }
-          } catch(e) { _st('Action failed: ' + e.message); }
-        });
-        drawer.querySelector('.fp-drawer').after(banBtn);
-
-        const newRow = document.createElement('tr');
-        newRow.appendChild(drawer);
-        tr.after(newRow);
-      });
-    }
-
-    tr.querySelector('.btn-del').addEventListener('click', async () => { await _dm(msg); });
-    frag.appendChild(tr);
-  }
-  tbody.appendChild(frag);
-}
-
-async function _fput(path, val) {
-  const b = DB_URL.replace(/\/+$/, ''), u = `${b}/${path}.json`;
-  const r = await fetch(u, {
+async function _fbPut(path, val) {
+  const url = _BASE + '/' + path + '.json';
+  const res = await fetch(url, {
     method: 'PUT',
     headers: {'Content-Type':'application/json','Accept':'application/json'},
     body: JSON.stringify(val)
   });
-  if (!r.ok) throw new Error('PUT ' + r.status);
+  if (!res.ok) throw new Error('PUT ' + res.status);
 }
 
-async function _fd(path){const b=DB_URL.replace(/\/+$/,''),u=`${b}/${path}.json`;let r;try{r=await fetch(u,{method:'DELETE',mode:'cors',headers:{'Accept':'application/json'}});}catch(e){throw new Error('e:'+e.message);}if(!r.ok)throw new Error('r:'+r.status);}
+// ── State ─────────────────────────────────────────────────────────────────
+let _mode    = null;   // 'check' | 'send'
+let _authed  = false;
+let _payload = null;   // decoded snapshot object
+let _pending = [];     // [{type, path, label}]
 
-/* ── Confirm modal ── */
-let _confirmResolve = null;
-
-function _sc(title, body, okLabel) {
-  return new Promise(resolve => {
-    _confirmResolve = resolve;
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmBody').innerHTML   = body;
-    document.getElementById('confirmOverlay').classList.remove('hidden');
-    document.getElementById('confirmOk').disabled = false;
-    document.getElementById('confirmOk').textContent = okLabel || 'Confirm';
-  });
-}
-
-document.getElementById('confirmCancel').addEventListener('click', () => {
-  document.getElementById('confirmOverlay').classList.add('hidden');
-  if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
-});
-
-document.getElementById('confirmOk').addEventListener('click', () => {
-  document.getElementById('confirmOverlay').classList.add('hidden');
-  if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
-});
-
-// Close on overlay background click
-document.getElementById('confirmOverlay').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('confirmOverlay')) {
-    document.getElementById('confirmOverlay').classList.add('hidden');
-    if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
-  }
-});
-
-async function _dr(roomName) {
-  const confirmed = await _sc(
-    'Delete Room',
-    `Delete room <strong>#${_eh(roomName)}</strong> and all its messages?<br><br>This cannot be undone.`,
-    'Delete'
-  );
-  if (!confirmed) return;
-
-  try {
-    await _fd(`rooms/${roomName}`);
-    allMessages = allMessages.filter(m => m.room !== roomName);
-    if (activeRoom === roomName) activeRoom = null;
-    const remainingRooms = [...new Set(allMessages.map(m => m.room))];
-    const uniqueUsers    = new Set(allMessages.map(m => m.user));
-    _us(remainingRooms.length, uniqueUsers.size, allMessages.length,
-      allMessages.filter(m => !m.failed).length);
-    await _rs(remainingRooms, allMessages);
-    await _rt();
-    _st(`Room #${roomName} deleted.`);
-  } catch(e) {
-    _st('Delete failed: ' + e.message);
-  }
-}
-
-async function _dm(msg) {
-  const confirmed = await _sc(
-    'Delete Message',
-    `Delete this message from <strong>${_eh(msg.user)}</strong> in <strong>#${_eh(msg.room)}</strong>?<br><br>This cannot be undone.`,
-    'Delete'
-  );
-  if (!confirmed) return;
-
-  try {
-    await _fd(`rooms/${msg.room}/messages/${msg.key}`);
-    allMessages = allMessages.filter(m => m.key !== msg.key);
-    const remainingRooms = [...new Set(allMessages.map(m => m.room))];
-    const uniqueUsers    = new Set(allMessages.map(m => m.user));
-    _us(remainingRooms.length, uniqueUsers.size, allMessages.length,
-      allMessages.filter(m => !m.failed).length);
-    await _rs(remainingRooms, allMessages);
-    await _rt();
-    _st('Message deleted.');
-  } catch(e) {
-    _st('Delete failed: ' + e.message);
-  }
-}
-
-document.getElementById('searchInput').addEventListener('input', async (e) => {
-  searchQuery = e.target.value.trim();
-  await _rt();
-});
-
-document.getElementById('refreshBtn').addEventListener('click', async () => {
-  activeRoom  = null;
-  searchQuery = '';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('panelTitle').innerHTML = 'All Messages';
-  await _lad();
-  _st('Refreshed.');
-});
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-  let rows = allMessages;
-  if (activeRoom !== null) rows = rows.filter(m => m.room === activeRoom);
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    rows = rows.filter(m =>
-      m.user.toLowerCase().includes(q) ||
-      (!m.failed && m.plaintext.toLowerCase().includes(q)) ||
-      m.room.toLowerCase().includes(q)
-    );
-  }
-
-  if (rows.length === 0) { _st('Nothing to export.'); return; }
-
-  const header = ['Timestamp', 'Room', 'User', 'Message'];
-  const csvRows = [
-    header.join(','),
-    ...rows.map(m => [
-      formatDateTime(m.timestamp),
-      m.room,
-      m.user,
-      m.failed ? 'Failed to Read.' : m.plaintext
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
-  ];
-
-  const blob = new Blob([csvRows.join('\n')], {type:'text/csv'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `cipherroom-export-${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  _st(`Exported ${rows.length} messages.`);
-});
-
-function _us(rooms,users,messages,decrypted) {
-  document.getElementById('statRooms').textContent    = rooms;
-  document.getElementById('statUsers').textContent    = users;
-  document.getElementById('statMessages').textContent = messages;
-  document.getElementById('statDecrypted').textContent = decrypted;
-}
-function _uds(done,total) {
-  const el = document.getElementById('decryptStatus');
-  if (done >= total && total > 0) {
-    el.textContent = `✓ ${done} / ${total} decrypted`;
-    el.style.color = 'var(--green)';
-  } else if (total > 0) {
-    el.textContent = `Decrypting… ${done} / ${total}`;
-    el.style.color = 'var(--muted)';
+// ── Mode CSS vars ─────────────────────────────────────────────────────────
+function _applyModeTheme(mode) {
+  const root = document.documentElement;
+  if (mode === 'check') {
+    root.style.setProperty('--accent',  '#3b82f6');
+    root.style.setProperty('--accent2', '#1d4ed8');
+    root.style.setProperty('--glow',    'rgba(59,130,246,.15)');
   } else {
-    el.textContent = '';
+    root.style.setProperty('--accent',  '#ef4444');
+    root.style.setProperty('--accent2', '#b91c1c');
+    root.style.setProperty('--glow',    'rgba(239,68,68,.15)');
   }
 }
-function _sls() {
-  document.getElementById('loadingState').classList.remove('hidden');
-  document.getElementById('msgTable').classList.add('hidden');
-  document.getElementById('emptyState').classList.add('hidden');
-  document.getElementById('msgBody').innerHTML = '';
-  _us('—','—','—','—');
-  document.getElementById('roomList').innerHTML = '<div class="user-item">Loading…</div>';
-  document.getElementById('userList').innerHTML = '<div class="user-item">Loading…</div>';
+
+// ── Navigation helpers ────────────────────────────────────────────────────
+function _show(id) { document.getElementById(id).classList.remove('hidden'); }
+function _hide(id) { document.getElementById(id).classList.add('hidden'); }
+function _hideAll() {
+  ['stepMode','stepPass','stepCheck','stepSend'].forEach(_hide);
 }
-function _ses() {
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('msgTable').classList.add('hidden');
-  document.getElementById('emptyState').classList.remove('hidden');
+function _esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-function _fdt(ts) {
+function _fmtTime(ts) {
   if (!ts) return '—';
   const d = new Date(ts);
-  const date = d.toLocaleDateString([], {year:'numeric', month:'short', day:'numeric'});
-  const time = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-  return date + '\n' + time;
-}
-function _eh(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-let toastTimer;
-function _st(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'show';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = '', 3000);
+  return d.toLocaleDateString([],{month:'short',day:'numeric'}) + ' ' +
+         d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
 
-
-/* ═══════════════════════════════════════════════
-   SNAPSHOT EXPORT / IMPORT
-   Export: serialises allMessages + ban list to JSON.
-   Import: parses that JSON, decrypts with _k, renders
-           without touching Firebase at all — works
-           perfectly through any proxy.
-═══════════════════════════════════════════════ */
-
-// ── Open/close modal helpers ──────────────────
-function _openSnap() { document.getElementById('snapOverlay').classList.remove('hidden'); }
-function _closeSnap() {
-  document.getElementById('snapOverlay').classList.add('hidden');
-  document.getElementById('snapTextarea').value = '';
-  document.getElementById('snapStatus').textContent = '';
-}
-document.getElementById('snapClose').addEventListener('click', _closeSnap);
-document.getElementById('snapOverlay').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('snapOverlay')) _closeSnap();
+// ─────────────────────────────────────────────────────────────────────────
+// STEP 1 — MODE SELECT
+// ─────────────────────────────────────────────────────────────────────────
+document.getElementById('btnCheck').addEventListener('click', () => {
+  _mode = 'check';
+  _applyModeTheme('check');
+  document.getElementById('passModeSub').textContent = 'CHECK MODE';
+  document.getElementById('passModeSub').style.color = '#3b82f6';
+  document.getElementById('passBtn').style.background = 'linear-gradient(135deg,#3b82f6,#1d4ed8)';
+  _hideAll(); _show('stepPass');
+  setTimeout(() => document.getElementById('passInput').focus(), 100);
 });
 
-// ── EXPORT: build JSON snapshot from allMessages ──
-document.getElementById('snapExportBtn').addEventListener('click', async () => {
-  if (!allMessages || allMessages.length === 0) {
-    _st('No data loaded — refresh first.');
+document.getElementById('btnSend').addEventListener('click', () => {
+  _mode = 'send';
+  _applyModeTheme('send');
+  document.getElementById('passModeSub').textContent = 'SEND MODE';
+  document.getElementById('passModeSub').style.color = '#ef4444';
+  document.getElementById('passBtn').style.background = 'linear-gradient(135deg,#ef4444,#b91c1c)';
+  _hideAll(); _show('stepPass');
+  setTimeout(() => document.getElementById('passInput').focus(), 100);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// STEP 2 — PASSWORD
+// ─────────────────────────────────────────────────────────────────────────
+document.getElementById('passBack').addEventListener('click', () => {
+  _hideAll(); _show('stepMode');
+  document.getElementById('passInput').value = '';
+  document.getElementById('passStatus').textContent = '';
+  document.getElementById('passInput').classList.remove('invalid');
+});
+
+document.getElementById('passBtn').addEventListener('click', _doAuth);
+document.getElementById('passInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') _doAuth();
+});
+
+function _doAuth() {
+  const val = document.getElementById('passInput').value;
+  const statusEl = document.getElementById('passStatus');
+  if (!val) return;
+
+  if (val !== _d1) {
+    document.getElementById('passInput').classList.add('invalid');
+    statusEl.textContent = 'Access denied.';
+    statusEl.className = 'status err';
+    document.getElementById('passInput').value = '';
     return;
   }
 
-  // Fetch ban list too so the recipient can see who is banned
-  let banList = {};
+  if (!_rk || _rk.length < 8) {
+    statusEl.textContent = 'Internal key error.';
+    statusEl.className = 'status err';
+    return;
+  }
+
+  _authed = true;
+  document.getElementById('passInput').classList.remove('invalid');
+  statusEl.textContent = '';
+
+  _hideAll();
+  if (_mode === 'check') {
+    _show('stepCheck');
+  } else {
+    _show('stepSend');
+    _show('sendIntro');
+    _hide('mainPanel');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CHECK MODE — Fetch → Encode → Copy
+// ─────────────────────────────────────────────────────────────────────────
+document.getElementById('fetchBtn').addEventListener('click', _doFetch);
+document.getElementById('fetchAgainBtn').addEventListener('click', _doFetch);
+
+async function _doFetch() {
+  const statusEl = document.getElementById('checkStatus');
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Fetching…';
+  statusEl.textContent = 'Connecting to Firebase…';
+  statusEl.className = 'status';
+  _hide('checkPayloadSection');
+
   try {
-    const br = await _fg('_banned');
-    if (br) banList = br;
-  } catch(_) {}
+    statusEl.textContent = 'Fetching rooms…';
+    const rooms = await _fbGet('rooms');
 
-  const snapshot = {
-    v:        1,
-    exported: new Date().toISOString(),
-    messages: allMessages.map(m => ({
-      key:       m.key,
-      room:      m.room,
-      user:      m.user,
-      timestamp: m.timestamp,
-      ciphertext: m.ciphertext,
-      fpId:      m.fpId  || null,
-      fpData:    m.fpData || null,
-    })),
-    banned: banList,
-  };
+    statusEl.textContent = 'Fetching ban list…';
+    let banned = {};
+    try { banned = await _fbGet('_banned') || {}; } catch(_) {}
 
-  const json = JSON.stringify(snapshot, null, 2);
+    // Build flat message list
+    const messages = [];
+    if (rooms) {
+      for (const [roomName, roomData] of Object.entries(rooms)) {
+        if (!roomData || !roomData.messages) continue;
+        for (const [key, val] of Object.entries(roomData.messages)) {
+          if (!val) continue;
+          messages.push({
+            key, room: roomName,
+            user:       val.user       || 'Unknown',
+            timestamp:  val.timestamp  || 0,
+            ciphertext: val.ciphertext || '',
+            fpId:       val._f         || null,
+            fpData:     val._fc        || null,
+          });
+        }
+      }
+    }
 
-  document.getElementById('snapTitle').textContent   = '📋 Copy Snapshot';
-  document.getElementById('snapDesc').textContent    =
-    'Copy everything below and paste it into "Load Snapshot" on another device or connection.';
-  document.getElementById('snapTextarea').value      = json;
-  document.getElementById('snapTextarea').readOnly   = true;
-  document.getElementById('snapLoadBtn').classList.add('hidden');
-  document.getElementById('snapCopyBtn').classList.remove('hidden');
-  document.getElementById('snapStatus').textContent  =
-    snapshot.messages.length + ' messages · ' + Object.keys(banList).length + ' bans';
-  _openSnap();
-});
+    // Sort by timestamp
+    messages.sort((a, b) => a.timestamp - b.timestamp);
 
-// ── Copy to clipboard ─────────────────────────
-document.getElementById('snapCopyBtn').addEventListener('click', async () => {
-  const text = document.getElementById('snapTextarea').value;
+    statusEl.textContent = 'Decrypting ' + messages.length + ' messages…';
+
+    // Decrypt using _rk
+    let decOk = 0;
+    const decrypted = await Promise.all(messages.map(async m => {
+      let plain = null, failed = false;
+      try { plain = await _tryDecrypt(m.ciphertext, _rk); decOk++; }
+      catch(_) { failed = true; }
+      return { ...m, plain, failed };
+    }));
+
+    // Encode as base64 JSON
+    const snapshot = {
+      v: 2,
+      ts: Date.now(),
+      messages: decrypted,
+      banned,
+    };
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(snapshot))));
+
+    statusEl.textContent = '✓ Fetched ' + messages.length + ' messages, ' + decOk + ' decrypted, ' + Object.keys(banned).length + ' bans.';
+    statusEl.className = 'status ok';
+
+    document.getElementById('checkPayload').textContent = encoded;
+    _show('checkPayloadSection');
+
+  } catch(e) {
+    statusEl.textContent = 'Fetch failed: ' + (e.message || e);
+    statusEl.className = 'status err';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '↓ Fetch from Firebase';
+  }
+}
+
+document.getElementById('copyPayloadBtn').addEventListener('click', async () => {
+  const text = document.getElementById('checkPayload').textContent;
+  const status = document.getElementById('copyStatus');
   try {
     await navigator.clipboard.writeText(text);
-    document.getElementById('snapStatus').textContent = '✓ Copied to clipboard!';
-    document.getElementById('snapStatus').style.color = 'var(--green)';
+    status.textContent = '✓ Copied! Paste this in SEND mode on your other device.';
+    status.className = 'status ok';
   } catch(_) {
-    // Fallback for browsers that block clipboard API
-    document.getElementById('snapTextarea').select();
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
     document.execCommand('copy');
-    document.getElementById('snapStatus').textContent = '✓ Selected — press Ctrl+C to copy';
-    document.getElementById('snapStatus').style.color = 'var(--accent)';
+    document.body.removeChild(ta);
+    status.textContent = '✓ Copied via fallback!';
+    status.className = 'status ok';
   }
 });
 
-// ── IMPORT: open modal for paste ──────────────
-document.getElementById('snapImportBtn').addEventListener('click', () => {
-  document.getElementById('snapTitle').textContent   = '📥 Load Snapshot';
-  document.getElementById('snapDesc').textContent    =
-    'Paste a snapshot from another session below, then click "Load Data". ' +
-    'This does not affect Firebase — it only loads data for viewing in this session.';
-  document.getElementById('snapTextarea').value      = '';
-  document.getElementById('snapTextarea').readOnly   = false;
-  document.getElementById('snapLoadBtn').classList.remove('hidden');
-  document.getElementById('snapCopyBtn').classList.add('hidden');
-  document.getElementById('snapStatus').textContent  = '';
-  document.getElementById('snapStatus').style.color  = 'var(--accent)';
-  _openSnap();
-  setTimeout(() => document.getElementById('snapTextarea').focus(), 100);
-});
+document.getElementById('checkLogout').addEventListener('click', _logout);
 
-// ── Load pasted snapshot ──────────────────────
-document.getElementById('snapLoadBtn').addEventListener('click', async () => {
-  const raw = document.getElementById('snapTextarea').value.trim();
-  if (!raw) {
-    document.getElementById('snapStatus').textContent = 'Paste a snapshot first.';
-    document.getElementById('snapStatus').style.color = 'var(--red)';
-    return;
-  }
+// ─────────────────────────────────────────────────────────────────────────
+// SEND MODE — Paste → Decrypt → Queue Actions → Execute
+// ─────────────────────────────────────────────────────────────────────────
+document.getElementById('loadPayloadBtn').addEventListener('click', _loadPayload);
+document.getElementById('sendLogout').addEventListener('click', _logout);
+document.getElementById('panelLogout').addEventListener('click', _logout);
+
+async function _loadPayload() {
+  const raw = document.getElementById('pasteInput').value.trim();
+  const status = document.getElementById('pasteStatus');
+  if (!raw) { status.textContent = 'Paste a payload first.'; status.className='status err'; return; }
 
   let snapshot;
   try {
-    snapshot = JSON.parse(raw);
+    snapshot = JSON.parse(decodeURIComponent(escape(atob(raw))));
   } catch(e) {
-    document.getElementById('snapStatus').textContent = 'Invalid JSON — copy the full snapshot text.';
-    document.getElementById('snapStatus').style.color = 'var(--red)';
+    status.textContent = 'Invalid payload — copy the full text from CHECK mode.';
+    status.className = 'status err';
     return;
   }
 
   if (!snapshot.v || !Array.isArray(snapshot.messages)) {
-    document.getElementById('snapStatus').textContent = 'Unrecognised snapshot format.';
-    document.getElementById('snapStatus').style.color = 'var(--red)';
+    status.textContent = 'Unrecognised payload format.';
+    status.className = 'status err';
     return;
   }
 
-  document.getElementById('snapStatus').textContent = 'Decrypting…';
-  document.getElementById('snapStatus').style.color = 'var(--muted)';
+  _payload = snapshot;
+  _pending = [];
 
-  // Decrypt messages using the session key _k
-  let decryptedCount = 0;
-  const total = snapshot.messages.length;
+  // Render
+  const exported = new Date(snapshot.ts).toLocaleString();
+  document.getElementById('panelStats').textContent =
+    snapshot.messages.length + ' msgs · ' +
+    Object.keys(snapshot.banned || {}).length + ' bans · exported ' + exported;
 
-  allMessages = await Promise.all(snapshot.messages.map(async (msg) => {
-    let plaintext = null, failed = false;
-    try {
-      plaintext = await _try(msg.ciphertext, _k);
-      decryptedCount++;
-    } catch(_) {
-      failed = true;
-      plaintext = null;
+  _renderMessages();
+  _renderPending();
+
+  _hide('sendIntro');
+  _show('mainPanel');
+}
+
+function _renderMessages() {
+  const list = document.getElementById('msgList');
+  const msgs = _payload ? _payload.messages : [];
+  if (!msgs.length) { list.innerHTML = '<div class="empty-state">No messages.</div>'; return; }
+
+  const banned = _payload.banned || {};
+  list.innerHTML = '';
+
+  for (const msg of [...msgs].reverse()) {
+    const isBanned = msg.fpId && banned[msg.fpId] === true;
+    const div = document.createElement('div');
+    div.className = 'msg-row';
+    div.dataset.key = msg.key;
+    div.innerHTML = `
+      <div class="msg-meta">
+        <div class="msg-user">${_esc(msg.user)}</div>
+        <div class="msg-time">${_fmtTime(msg.timestamp)}</div>
+        <div class="msg-room">#${_esc(msg.room)}</div>
+        ${msg.fpId && msg.fpId !== 'hidden'
+          ? `<div style="font-size:9px;color:${isBanned?'#ef4444':'var(--muted)'};">
+               ${isBanned ? '🚫 banned' : '🔍 ' + msg.fpId.slice(0,6)}
+             </div>`
+          : (msg.fpId === 'hidden' ? '<div style="font-size:9px;color:var(--muted);">🔒 hidden</div>' : '')}
+      </div>
+      <div class="msg-body ${msg.failed ? 'failed' : ''}">
+        ${msg.failed ? '[ Encrypted — not decryptable with bypass key ]' : _esc(msg.plain || '—')}
+      </div>
+      <div class="msg-actions">
+        <button class="btn-del-msg" data-key="${_esc(msg.key)}" data-room="${_esc(msg.room)}" title="Queue delete">✕ Del</button>
+        ${msg.fpId && msg.fpId !== 'hidden'
+          ? `<button class="btn-ban-fp" data-fpid="${_esc(msg.fpId)}" data-banned="${isBanned}"
+               title="${isBanned ? 'Queue unban' : 'Queue ban'}">
+               ${isBanned ? '✓ Unban' : '⊘ Ban'}
+             </button>`
+          : ''}
+      </div>
+    `;
+
+    // Delete button
+    div.querySelector('.btn-del-msg').addEventListener('click', function() {
+      const key  = this.dataset.key;
+      const room = this.dataset.room;
+      _queueAction({ type:'delete', path:'rooms/' + room + '/messages/' + key,
+        label: 'Delete msg from ' + room + ' by ' + msg.user });
+      this.disabled = true;
+      this.textContent = '✓ Queued';
+    });
+
+    // Ban/unban button
+    const banBtn = div.querySelector('.btn-ban-fp');
+    if (banBtn) {
+      banBtn.addEventListener('click', function() {
+        const fpid   = this.dataset.fpid;
+        const banned = this.dataset.banned === 'true';
+        if (banned) {
+          _queueAction({ type:'delete', path:'_banned/' + fpid,
+            label: 'Unban fingerprint ' + fpid.slice(0,8) });
+        } else {
+          _queueAction({ type:'put', path:'_banned/' + fpid, val: true,
+            label: 'Ban fingerprint ' + fpid.slice(0,8) });
+        }
+        this.disabled = true;
+        this.textContent = '✓ Queued';
+      });
     }
-    return { ...msg, plaintext, failed };
-  }));
 
-  // Build stats
-  const roomNames   = [...new Set(allMessages.map(m => m.room))];
-  const uniqueUsers = new Set(allMessages.map(m => m.user));
-  _us(roomNames.length, uniqueUsers.size, total, decryptedCount);
-  _uds(total, total);
+    list.appendChild(div);
+  }
+}
 
-  await _rs(roomNames, allMessages);
-  await _rt();
+function _queueAction(action) {
+  _pending.push({ ...action, status: 'pending' });
+  _renderPending();
+}
 
-  _closeSnap();
-  _st('Loaded ' + total + ' messages from snapshot (' + decryptedCount + ' decrypted).');
+function _renderPending() {
+  const section = document.getElementById('pendingSection');
+  const list    = document.getElementById('pendingList');
+
+  if (!_pending.length) { _hide('pendingSection'); return; }
+  _show('pendingSection');
+
+  list.innerHTML = '';
+  for (const a of _pending) {
+    const div = document.createElement('div');
+    div.className = 'action-card ' + a.status;
+    div.innerHTML = `
+      <div class="action-label">${a.type.toUpperCase()} · ${a.status.toUpperCase()}</div>
+      <div class="action-value">${_esc(a.label)}</div>
+      ${a.error ? `<div class="action-status" style="color:#ef4444;">Error: ${_esc(a.error)}</div>` : ''}
+      ${a.status === 'done' ? `<div class="action-status" style="color:#22c55e;">✓ Complete</div>` : ''}
+    `;
+    list.appendChild(div);
+  }
+}
+
+document.getElementById('clearActionsBtn').addEventListener('click', () => {
+  _pending = [];
+  _renderPending();
 });
 
-}); // end DOMContentLoaded
+document.getElementById('executeBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('executeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Executing…';
+
+  for (const action of _pending) {
+    if (action.status === 'done') continue;
+    try {
+      if (action.type === 'delete') {
+        await _fbDelete(action.path);
+      } else if (action.type === 'put') {
+        await _fbPut(action.path, action.val);
+      }
+      action.status = 'done';
+    } catch(e) {
+      action.status = 'failed';
+      action.error  = e.message || String(e);
+    }
+    _renderPending();
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Execute All Actions →';
+
+  const failed = _pending.filter(a => a.status === 'failed').length;
+  const done   = _pending.filter(a => a.status === 'done').length;
+  if (failed === 0) {
+    btn.textContent = '✓ All ' + done + ' actions complete';
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// LOGOUT
+// ─────────────────────────────────────────────────────────────────────────
+function _logout() {
+  _authed  = false;
+  _mode    = null;
+  _payload = null;
+  _pending = [];
+  document.getElementById('passInput').value = '';
+  document.getElementById('pasteInput').value = '';
+  document.getElementById('passStatus').textContent = '';
+  document.getElementById('checkStatus').textContent = 'Ready to fetch…';
+  document.getElementById('checkStatus').className = 'status';
+  _hide('checkPayloadSection');
+  _hide('mainPanel');
+  _show('sendIntro');
+  _applyModeTheme('check');
+  _hideAll();
+  _show('stepMode');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────
+_show('stepMode');
 </script>
 
 </body>
