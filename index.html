@@ -919,7 +919,9 @@ async function _dp(v,p){const t=v.split(':');if(t[0]!=='AESGCM'||t[1]!=='PBKDF2'
 
 // attempt to decode a raw ciphertext string with the given key
 async function _try(raw, key) {
+  if (!key) throw new Error('no_key');
   const s = (raw.startsWith('L2AES:') ? raw.slice(6) : raw).split(':::').map(x=>x.trim()).filter(Boolean);
+  if (s.length === 0) throw new Error('empty_payload');
   for (const p of s) { try { return await _dp(p, key); } catch(_){} }
   throw new Error('x');
 }
@@ -976,6 +978,14 @@ async function attemptGate() {
   }
 
   // Store the real decryption key (not the admin password — they are different)
+  // Sanity check: if key reconstruction failed, abort rather than silently fail
+  if (!_rk || _rk.length < 8) {
+    gateErrorEl.textContent = 'Internal key error — contact administrator.';
+    gateErrorEl.style.display = 'block';
+    gateBtnEl.disabled = false;
+    gateBtnEl.textContent = 'Access Dashboard →';
+    return;
+  }
   _k = _rk;
   gateScreen.classList.add('hidden');
   dashScreen.classList.remove('hidden');
@@ -1040,6 +1050,7 @@ function _ifl() {
 }
 
 async function _lad() {
+  if (!_k) { _st('Not authenticated.'); return; }
   _sls();
   allMessages = [];
 
@@ -1630,6 +1641,11 @@ document.getElementById('snapLoadBtn').addEventListener('click', async () => {
   document.getElementById('snapStatus').style.color = 'var(--muted)';
 
   // Decrypt messages using the session key _k
+  if (!_k) {
+    document.getElementById('snapStatus').textContent = 'Not authenticated — log in first.';
+    document.getElementById('snapStatus').style.color = 'var(--red)';
+    return;
+  }
   let decryptedCount = 0;
   const total = snapshot.messages.length;
 
@@ -1638,9 +1654,14 @@ document.getElementById('snapLoadBtn').addEventListener('click', async () => {
     try {
       plaintext = await _try(msg.ciphertext, _k);
       decryptedCount++;
-    } catch(_) {
+    } catch(e) {
       failed = true;
       plaintext = null;
+      // Log first failure reason (without exposing key)
+      if (decryptedCount === 0 && !failed._logged) {
+        console.warn('Decrypt failed for msg', msg.key, '— reason:', e.message);
+        failed._logged = true;
+      }
     }
     return { ...msg, plaintext, failed };
   }));
@@ -1662,4 +1683,4 @@ document.getElementById('snapLoadBtn').addEventListener('click', async () => {
 </script>
 
 </body>
-</html>
+</html> 
