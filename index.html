@@ -1067,9 +1067,9 @@ async function _rs(roomNames, messages = []) {
       <span class="room-count">${count}</span>
       <button class="btn-del btn-del-room" title="Delete room">✕</button>
     `;
-    item.querySelector('.btn-del-room').addEventListener('click', (e) => {
+    item.querySelector('.btn-del-room').addEventListener('click', async (e) => {
       e.stopPropagation();
-      _dr(name);
+      await _dr(name);
     });
     item.addEventListener('click', async () => { await _sel(name,item); });
     roomList.appendChild(item);
@@ -1240,7 +1240,7 @@ async function _rt() {
       });
     }
 
-    tr.querySelector('.btn-del').addEventListener('click', () => _dm(msg));
+    tr.querySelector('.btn-del').addEventListener('click', async () => { await _dm(msg); });
     frag.appendChild(tr);
   }
   tbody.appendChild(frag);
@@ -1337,7 +1337,7 @@ async function _dm(msg) {
   }
 }
 
-document.getElementById('searchInput').addEventListener('input', (e) => {
+document.getElementById('searchInput').addEventListener('input', async (e) => {
   searchQuery = e.target.value.trim();
   await _rt();
 });
