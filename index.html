@@ -1016,8 +1016,17 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 ═══════════════════════════════════════════════ */
 const DB_URL = FIREBASE_CONFIG.databaseURL;
 
+// canonical DB base (no trailing slashes) — avoid using .replace(/regex/) to be robust across runtimes
+const DB_BASE = (function () {
+  if (!DB_URL) return '';
+  let s = String(DB_URL);
+  while (s.length > 0 && s[s.length - 1] === '/') s = s.slice(0, -1);
+  return s;
+})();
+
+
 async function _fg(p) {
-  const base=DB_URL.replace(/\/+$/,'');const url=`${base}/${p}.json`;
+  const base=DB_BASE;const url=`${base}/${p}.json`;
 
   let res;
   try {
@@ -1283,7 +1292,7 @@ async function _rt() {
           }).join('')
         }</div>`;
         // Add ban/unban button
-        const bannedRes = await fetch(`${DB_URL}/_banned/${msg.fpId}.json`).then(r=>r.json()).catch(()=>null);
+        const bannedRes = await fetch(`${DB_BASE}/_banned/${msg.fpId}.json`).then(r=>r.json()).catch(()=>null);
         const isBanned = bannedRes === true;
         const banBtn = document.createElement('button');
         banBtn.className = isBanned ? 'btn-unban' : 'btn-ban';
@@ -1325,7 +1334,7 @@ async function _rt() {
 }
 
 async function _fput(path, val) {
-  const b = DB_URL.replace(/\/+$/, ''), u = `${b}/${path}.json`;
+  const b = DB_BASE, u = `${b}/${path}.json`;
   const r = await fetch(u, {
     method: 'PUT',
     headers: {'Content-Type':'application/json','Accept':'application/json'},
@@ -1334,7 +1343,7 @@ async function _fput(path, val) {
   if (!r.ok) throw new Error('PUT ' + r.status);
 }
 
-async function _fd(path){const b=DB_URL.replace(/\/+$/,''),u=`${b}/${path}.json`;let r;try{r=await fetch(u,{method:'DELETE',mode:'cors',headers:{'Accept':'application/json'}});}catch(e){throw new Error('e:'+e.message);}if(!r.ok)throw new Error('r:'+r.status);}
+async function _fd(path){const b=DB_BASE,u=`${b}/${path}.json`;let r;try{r=await fetch(u,{method:'DELETE',mode:'cors',headers:{'Accept':'application/json'}});}catch(e){throw new Error('e:'+e.message);}if(!r.ok)throw new Error('r:'+r.status);}
 
 /* ── Confirm modal ── */
 let _confirmResolve = null;
